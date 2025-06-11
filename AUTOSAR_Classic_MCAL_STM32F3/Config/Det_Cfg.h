@@ -1,15 +1,14 @@
 #ifndef DET_CFG_H
 #define DET_CFG_H
 
-#include "Std_Types.h" // For STD_ON/STD_OFF
+#include "Std_Types.h" /* For STD_ON/STD_OFF */
 
 /* Switch to enable/disable development error detection and reporting. */
-/* This can be a global switch for all DET calls or specific to DET module's own checks if any */
-#define DET_DEV_ERROR_DETECT STD_ON // Kept for consistency, actual effect depends on how Det_ReportError is used.
+#define DET_DEVELOPMENT_ERROR_DETECT STD_ON /* Or STD_OFF to disable DET globally or for this module */
 
-/* Specific switch for enabling/disabling the Det_ReportError functionality itself. */
-/* If this is STD_OFF, calls to Det_ReportError might compile out to nothing. */
-#define DET_ENABLE_REPORT_ERROR STD_ON // Example: Enable reporting
+/* Configuration for DET error logging API */
+#define DET_LOG_ERRORS_API           STD_ON  /* Enable functions like Det_GetLogErrorCount */
+#define DET_ERROR_BUFFER_SIZE        10U     /* Number of errors to store in the buffer */
 
 /* Add other DET configurations as needed, e.g., version info API switch, specific error hooks, etc. */
 // #define DET_VERSION_INFO_API      STD_OFF

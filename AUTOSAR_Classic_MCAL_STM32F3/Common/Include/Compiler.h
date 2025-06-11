@@ -11,117 +11,134 @@
  * for real memory sectioning.
  *
  * For GCC, a common way to assign to a section is: __attribute__((section(".section_name")))
- * Example: #define DIO_CODE __attribute__((section (".DIO_CODE_R")))
- *
- * For now, these are defined as empty, meaning they will not add any special
- * attributes to the function/variable declarations.
+ * The actual section names (e.g., ".mcal_dio_code", ".mcal_port_code") are conventions
+ * and must match definitions in the linker script.
  */
 
-/* Memory classes for code */
-#define DIO_CODE                                            /* Used for DIO code */
-#define PORT_CODE                                           /* Used for Port code */
-#define DET_CODE                                            /* Used for DET code */
-#define MCU_CODE                                            /* Used for MCU driver code */
-#define COMMON_CODE                                         /* Used for common/shared code */
-#define APPL_CODE                                           /* Used for Application code */
-#define CONFIG_CODE                                         /* Used for configuration code (e.g. PBcfg.c) */
-#define DEFAULT_CODE                                        /* Default code section */
+/* Default definitions (empty - no specific sectioning applied by default) */
+#define DIO_CODE_DEFAULT
+#define PORT_CODE_DEFAULT
+#define DET_CODE_DEFAULT
+#define MCU_CODE_DEFAULT
+#define COMMON_CODE_DEFAULT
+#define APPL_CODE_DEFAULT
+#define CONFIG_CODE_DEFAULT /* For PostBuildConfig data, usually goes to .rodata or similar */
+#define DEFAULT_CODE_DEFAULT
 
-/* Memory classes for constants (example, can be more granular) */
-#define DIO_CONST                                           /* Used for DIO constants */
-#define PORT_CONST                                          /* Used for Port constants */
-#define DET_CONST                                           /* Used for DET constants */
-#define COMMON_CONST                                        /* Used for common constants */
-#define APPL_CONST                                          /* Used for Application constants */
-#define CONFIG_CONST                                        /* Used for configuration constants (e.g. in PBcfg.c) */
-#define DEFAULT_CONST                                       /* Default constant section */
+#define DIO_CONST_DEFAULT
+#define PORT_CONST_DEFAULT
+#define DET_CONST_DEFAULT
+#define CONFIG_CONST_DEFAULT /* For Config constants, e.g. in PBcfg.c */
+#define DEFAULT_CONST_DEFAULT
 
-/* Memory classes for variables (example) */
-#define DIO_VAR                                             /* Used for DIO variables */
-#define PORT_VAR                                            /* Used for Port variables */
-#define DET_VAR                                             /* Used for DET variables */
-#define COMMON_VAR                                          /* Used for common variables */
-#define APPL_VAR                                            /* Used for Application variables */
-#define DEFAULT_RAM                                         /* Default RAM section for variables */
+#define DIO_VAR_DEFAULT
+#define PORT_VAR_DEFAULT
+#define DET_VAR_DEFAULT   /* For Det runtime variables like the error buffer */
+#define DEFAULT_VAR_DEFAULT
 
 
-/*
- * @brief Macro for function definition.
- * @param rettype The return type of the function.
- * @param memclass The memory class where the function code shall be placed (e.g., DIO_CODE).
- * @details Expands to `rettype memclass`. If `memclass` is empty, it's just `rettype`.
- *          If `memclass` is an attribute like `__attribute__((section(".text"))`, it becomes
- *          `rettype __attribute__((section(".text")))`.
- * @example FUNC(void, DIO_CODE) Dio_WriteChannel(Dio_ChannelType ChannelId, Dio_LevelType Level);
- */
-#define FUNC(rettype, memclass)                             memclass rettype
+/* Compiler specific section mapping (Example for GCC) */
+#ifdef __GNUC__
+    #define DIO_CODE_SEC                __attribute__((section(".mcal_dio_code")))
+    #define PORT_CODE_SEC               __attribute__((section(".mcal_port_code")))
+    #define DET_CODE_SEC                __attribute__((section(".mcal_det_code")))
+    #define MCU_CODE_SEC                __attribute__((section(".mcal_mcu_code")))
+    #define COMMON_CODE_SEC             __attribute__((section(".mcal_common_code")))
+    #define APPL_CODE_SEC               __attribute__((section(".appl_code")))
+    #define CONFIG_CODE_SEC             __attribute__((section(".config_code"))) /* For executable config code if any */
+    #define DEFAULT_CODE_SEC            /* Can map to .text or a default code section */
 
-/**
- * @brief Macro for pointer to function declaration.
- * @param rettype The return type of the function that the pointer refers to.
- * @param memclass The memory class of the pointer variable itself (less common to section pointers this way).
- *                 Often, this is a placeholder like `TYPEDEF` or `AUTOMATIC` in AUTOSAR specs.
- *                 For simplicity here, it might not be used by the expansion if basic C pointers are formed.
- * @param fctname The name of the function pointer type or variable.
- * @details Expands to `rettype (*fctname)`.
- * @example typedef P2FUNC(void, APPL_CODE, MyFunctionPointerType)(uint8);
- *          MyFunctionPointerType ptrToFunc;
- * @example P2FUNC(void, APPL_CODE, anotherFuncPtr)(void); // Declares variable anotherFuncPtr
- */
-#define P2FUNC(rettype, memclass, fctname)                  rettype (* fctname)
+    #define DIO_CONST_SEC               __attribute__((section(".mcal_dio_const")))
+    #define PORT_CONST_SEC              __attribute__((section(".mcal_port_const")))
+    #define DET_CONST_SEC               __attribute__((section(".mcal_det_const")))
+    #define CONFIG_CONST_SEC            __attribute__((section(".config_const"))) /* For PBcfg structures */
+    #define DEFAULT_CONST_SEC           __attribute__((section(".rodata"))) /* General read-only data */
 
-/**
- * @brief Macro for pointer to constant data declaration.
- * @param ptrtype The type of the data that the pointer refers to.
- * @param memclass Memory class of the pointer variable itself. (Placeholder here)
- * @param ptrclass Target memory class or pointer class qualifier (e.g. AUTOMATIC). (Placeholder here)
- * @details Expands to `const ptrtype *`.
- * @example P2CONST(uint8, APPL_VAR, COMMON_CONST) myConstPtrToConstData;
- */
-#define P2CONST(ptrtype, memclass, ptrclass)                const ptrtype *
+    #define DIO_VAR_SEC                 __attribute__((section(".mcal_dio_var")))
+    #define PORT_VAR_SEC                __attribute__((section(".mcal_port_var")))
+    #define DET_VAR_SEC                 __attribute__((section(".mcal_det_var"))) /* For Det_ErrorBuffer */
+    #define DEFAULT_VAR_SEC             /* Can map to .data, .bss or a default RAM section */
+#else
+    /* Define for other compilers or default to empty if no specific sectioning */
+    #define DIO_CODE_SEC                DIO_CODE_DEFAULT
+    #define PORT_CODE_SEC               PORT_CODE_DEFAULT
+    #define DET_CODE_SEC                DET_CODE_DEFAULT
+    #define MCU_CODE_SEC                MCU_CODE_DEFAULT
+    #define COMMON_CODE_SEC             COMMON_CODE_DEFAULT
+    #define APPL_CODE_SEC               APPL_CODE_DEFAULT
+    #define CONFIG_CODE_SEC             CONFIG_CODE_DEFAULT
+    #define DEFAULT_CODE_SEC            DEFAULT_CODE_DEFAULT
 
-/**
- * @brief Macro for pointer to variable data declaration.
- * @param ptrtype The type of the data that the pointer refers to.
- * @param memclass Memory class of the pointer variable itself. (Placeholder here)
- * @param ptrclass Target memory class or pointer class qualifier. (Placeholder here)
- * @details Expands to `ptrtype *`.
- * @example P2VAR(uint8, APPL_VAR, APPL_VAR) myPtrToVarData;
- */
-#define P2VAR(ptrtype, memclass, ptrclass)                  ptrtype *
+    #define DIO_CONST_SEC               DIO_CONST_DEFAULT
+    #define PORT_CONST_SEC              PORT_CONST_DEFAULT
+    #define DET_CONST_SEC               DET_CONST_DEFAULT
+    #define CONFIG_CONST_SEC            CONFIG_CONST_DEFAULT
+    #define DEFAULT_CONST_SEC           DEFAULT_CONST_DEFAULT
 
-/**
- * @brief Macro for constant data definition.
- * @param consttype The type of the constant.
- * @param memclass The memory class where the constant shall be placed (e.g., CONFIG_CONST).
- * @details Expands to `const consttype memclass`. If `memclass` is empty, it's `const consttype`.
- * @example CONST(uint8, CONFIG_CONST) MyConfigConstant = 5U;
- */
+    #define DIO_VAR_SEC                 DIO_VAR_DEFAULT
+    #define PORT_VAR_SEC                PORT_VAR_DEFAULT
+    #define DET_VAR_SEC                 DET_VAR_DEFAULT
+    #define DEFAULT_VAR_SEC             DEFAULT_VAR_DEFAULT
+#endif
+
+/* Assign the active section macros to the generic AUTOSAR memclass names */
+#define DIO_CODE                    DIO_CODE_SEC
+#define PORT_CODE                   PORT_CODE_SEC
+#define DET_CODE                    DET_CODE_SEC
+#define MCU_CODE                    MCU_CODE_SEC
+#define COMMON_CODE                 COMMON_CODE_SEC
+#define APPL_CODE                   APPL_CODE_SEC
+#define CONFIG_CODE                 CONFIG_CODE_SEC /* For code related to config, if any */
+#define DEFAULT_CODE                DEFAULT_CODE_SEC
+
+#define DIO_CONST                   DIO_CONST_SEC
+#define PORT_CONST                  PORT_CONST_SEC
+#define DET_CONST                   DET_CONST_SEC
+#define CONFIG_CONST                CONFIG_CONST_SEC /* For PostBuild Config data structures */
+#define DEFAULT_CONST               DEFAULT_CONST_SEC
+
+#define DIO_VAR                     DIO_VAR_SEC
+#define PORT_VAR                    PORT_VAR_SEC
+#define DET_VAR                     DET_VAR_SEC
+#define DEFAULT_VAR                 DEFAULT_VAR_SEC
+
+
+/* Function macro: Maps to function definition with specific memory class */
+#define FUNC(rettype, memclass)                             rettype memclass
+
+/* Pointer to function type definition macro */
+/* Example: typedef P2FUNC_TYPEDEF(void, PORT_APPL_CODE, Port_NotificationFuncType)(uint8 channel); */
+#define P2FUNC_TYPEDEF(rettype, memclass_ptr, fctname)      rettype (* fctname)
+
+/* Pointer to function macro (for variable declaration) */
+#define P2FUNC(rettype, memclass_ptr, fctname)              rettype (* fctname)
+
+/* Pointer to constant data */
+/* ptrclass is an AUTOSAR concept like AUTOMATIC, TYPEDEF, possibly memclass for pointer itself */
+#define P2CONST(ptrtype, memclass_ptr, ptrclass_target)     const ptrclass_target ptrtype * memclass_ptr
+
+/* Pointer to variable data */
+#define P2VAR(ptrtype, memclass_ptr, ptrclass_target)       ptrclass_target ptrtype * memclass_ptr
+
+/* Constant data definition */
 #define CONST(consttype, memclass)                          const consttype memclass
 
-/**
- * @brief Macro for variable data definition.
- * @param vartype The type of the variable.
- * @param memclass The memory class where the variable shall be placed (e.g., APPL_VAR).
- * @details Expands to `vartype memclass`. If `memclass` is empty, it's `vartype`.
- * @example VAR(uint8, APPL_VAR) myApplicationVariable;
- */
+/* Variable data definition */
 #define VAR(vartype, memclass)                              vartype memclass
 
 
-/* Standard C keywords abstraction */
+/* Define _VOLATILE_ and _INLINE_ if not already present */
 #ifndef _VOLATILE_
-  #define _VOLATILE_          volatile
+  #define _VOLATILE_ volatile
 #endif
 
 #ifndef _INLINE_
-  #define _INLINE_            inline
+  #define _INLINE_ inline __attribute__((always_inline)) /* Example for GCC to suggest stronger inlining */
 #endif
 
-/* STATIC macro for static functions and variables */
-/* Using a non-keyword name like STATIC avoids conflict if 'static' is used directly */
+/* Define STATIC if not already present (often used for static functions/variables) */
 #ifndef STATIC
-  #define STATIC              static
+  #define STATIC static
 #endif
 
 #endif /* COMPILER_H */

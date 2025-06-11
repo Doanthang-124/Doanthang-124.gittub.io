@@ -1,79 +1,47 @@
-/**
- * @file main.c
- * @brief Simple LED Toggle Example for AUTOSAR Dio and Port drivers.
- *
- * This application demonstrates basic initialization and usage of Port and Dio
- * drivers to toggle an LED connected to a GPIO pin.
- */
-
-/* MCAL Driver Includes */
-#include "../../Include/Port.h"         /* Port Driver public header */
-#include "../../Include/Dio.h"          /* Dio Driver public header */
-
-/* Configuration Includes */
-/* These headers declare the 'Port_Config' and 'Dio_Config' structures. */
-#include "../../Config/Port_PBcfg.h"    /* Port Driver Post-Build Configuration declarations */
-#include "../../Config/Dio_PBcfg.h"     /* Dio Driver Post-Build Configuration declarations */
-
-/* For uint32 definition for the delay function parameter */
-#include "../../Common/Include/Std_Types.h"
+#include "Port.h"       /* For Port_Init */
+#include "Dio.h"        /* For Dio_Init, Dio_FlipChannel, Dio_ReadChannel */
+#include "Port_PBcfg.h" /* To make PortConfig available */
+#include "Dio_PBcfg.h"  /* To make DioConfig available */
+#include "Dio_Cfg.h"    /* For DIO_CHANNEL_PA5, DIO_CHANNEL_PC13 symbolic names */
+#include "../../Common/Include/Std_Types.h" /* For uint32, potentially FUNC, VAR if not via others */
+#include "../../Common/Include/Compiler.h" /* For FUNC, VAR macros */
 
 
-/* Symbolic name for the LED channel, ensure this is defined in Dio_Cfg.h
-   and corresponds to a pin configured as output in Port_PBcfg.c.
-   Example: DIO_CHANNEL_PA5 (Pin PA5)
-*/
-#ifndef LED_CHANNEL
-    // Assuming PA5 is configured as an LED output in Port_PBcfg.c
-    // and DIO_CHANNEL_PA5 is defined in Dio_Cfg.h
-    #define LED_CHANNEL DIO_CHANNEL_PA5
-#endif
-
-
-/**
- * @brief Simple software delay function.
- * @param count Loop iterations to perform for delay.
- *
- * This is a blocking delay. In a real application, timers or OS delays
- * would be preferred.
- */
-static void simple_delay(volatile uint32 count)
-{
-    while (count > 0U)
-    {
-        count--;
+// A simple software delay function
+FUNC(void, APPL_CODE) simple_delay(VAR(volatile uint32, AUTOMATIC) count) {
+    while(count--) {
+        // Just loop to consume time
     }
 }
 
-/**
- * @brief Main function for the LED toggle application.
- *
- * Initializes Port and Dio drivers, then enters an infinite loop
- * to toggle the configured LED channel.
- */
-int main(void)
-{
-    /* Initialize the Port driver with the post-build configuration. */
-    /* This function configures all port pins according to Port_PinConfigurations. */
+FUNC(int, APPL_CODE) main(void) {
+    VAR(Dio_LevelType, AUTOMATIC) buttonState;
+    VAR(uint32, AUTOMATIC) delay_val = 500000; // Default delay
+
+    // Initialize the Port driver with the default configuration
     Port_Init(&Port_Config);
 
-    /* Initialize the Dio driver with its post-build configuration. */
-    /* This makes the Dio configuration available to Dio functions. */
+    // Initialize the Dio driver with its configuration
     Dio_Init(&Dio_Config);
 
-    /* Application's main loop */
-    while (1)
-    {
-        /* Toggle the LED channel state. */
-        /* Dio_FlipChannel reads the current state and writes the opposite. */
-        (void)Dio_FlipChannel(LED_CHANNEL);
+    // Application loop
+    while(1) {
+        // Read the state of the button connected to PC13
+        // Assuming PC13 is configured with a pull-up, it reads HIGH when not pressed, LOW when pressed.
+        buttonState = Dio_ReadChannel(DIO_CHANNEL_PC13); // DIO_CHANNEL_PC13 should be defined in Dio_Cfg.h
 
-        /* Wait for some time to make the blinking visible. */
-        simple_delay(500000U); /* Adjust this value for desired blinking speed. */
-                               /* With typical MCU clocks (e.g., 8-72MHz), this might be
-                                  in the range of 100ms to 500ms. */
+        if (buttonState == STD_LOW) { // Button is pressed
+            delay_val = 100000; // Faster blink rate
+        } else { // Button is not pressed
+            delay_val = 500000; // Slower blink rate
+        }
+
+        // Flip the state of the LED connected to PA5
+        Dio_FlipChannel(DIO_CHANNEL_PA5); // DIO_CHANNEL_PA5 should be defined in Dio_Cfg.h
+
+        // Delay
+        simple_delay(delay_val);
     }
 
-    /* The program should not typically reach here in an embedded system. */
-    return 0;
+    // return 0; // Should not be reached in an embedded system
 }
