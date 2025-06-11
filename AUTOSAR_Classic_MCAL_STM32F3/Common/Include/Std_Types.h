@@ -7,6 +7,7 @@
 /* Include Platform_Types.h for platform-specific type definitions (boolean, uint8, etc.) */
 /* This file is expected to be in the same directory or an include path must be provided. */
 /* Assuming it's in the same "Common/Include" directory for this project structure. */
+#include "Compiler.h"       /* For FUNC, VAR, CONST macros and memory classes */
 #include "Platform_Types.h"
 
 /*==================================================================================================

@@ -28,6 +28,7 @@ COMMON_SRC_DIR := $(ROOT_DIR)/Common/Src
 CONFIG_SRC_DIR := $(ROOT_DIR)/Config  # PBcfg.c files are here
 DIO_SRC_DIR    := $(ROOT_DIR)/Dio/Src
 PORT_SRC_DIR   := $(ROOT_DIR)/Port/Src
+DET_SRC_DIR    := $(ROOT_DIR)/Det/Src # Added Det source directory
 APP_SRC_DIR    := $(ROOT_DIR)/App_Examples/SimpleLedToggle
 
 # Include directories relative to ROOT_DIR
@@ -35,6 +36,7 @@ COMMON_INC_DIR := $(ROOT_DIR)/Common/Include
 CONFIG_INC_DIR := $(ROOT_DIR)/Config
 DIO_INC_DIR    := $(ROOT_DIR)/Dio/Include
 PORT_INC_DIR   := $(ROOT_DIR)/Port/Include
+DET_INC_DIR    := $(ROOT_DIR)/Det/Include # Added Det include directory
 PUBLIC_INC_DIR := $(ROOT_DIR)/Include # For Port.h, Dio.h
 APP_INC_DIR    := $(ROOT_DIR)/App_Examples/SimpleLedToggle # If main.c had local headers
 
@@ -43,6 +45,7 @@ VPATH = $(COMMON_SRC_DIR) \
         $(CONFIG_SRC_DIR) \
         $(DIO_SRC_DIR)    \
         $(PORT_SRC_DIR)   \
+        $(DET_SRC_DIR)    \
         $(APP_SRC_DIR)
 
 # C source files (just the basenames, VPATH will find them)
@@ -63,6 +66,7 @@ INCLUDES = \
     -I$(CONFIG_INC_DIR) \
     -I$(DIO_INC_DIR)    \
     -I$(PORT_INC_DIR)   \
+    -I$(DET_INC_DIR)    \
     -I$(PUBLIC_INC_DIR) \
     -I$(APP_INC_DIR)
 
