@@ -31,19 +31,18 @@ The project is organized as follows, within the `AUTOSAR_Classic_MCAL_STM32F3` r
     - `Src/`: Port driver source file (`Port.c`).
 - `App_Examples/SimpleLedToggle/`: An example application demonstrating the usage of the Dio and Port drivers.
     - `main.c`: Source code for the example.
-    - (Linker script should be placed here by the user).
+    - `stm32f303xc_flash.ld`: Template linker script.
 - `build/`: This directory is created by the Makefile during the build process and contains all output files (object files, ELF, MAP, BIN, HEX).
 - `Makefile`: The Makefile used to build the sample application and drivers.
 - `README.md`: This documentation file.
+- `Documentation/`: Contains additional documentation like Memory_Sectioning.md and Unit_Testing_Strategy.md.
+
 
 ## Prerequisites for Building
 To build the sample application, you will need:
 1.  **ARM GCC Toolchain**: The `arm-none-eabi-gcc` compiler and associated tools (linker, objcopy, etc.) must be installed and accessible in your system's PATH.
 2.  **Make Utility**: The GNU `make` utility is required to process the Makefile.
-3.  **STM32F3 Linker Script**: A linker script (`.ld` file) specific to your STM32F3 target microcontroller (e.g., `stm32f303xc_flash.ld` for an STM32F303VC). This file defines the memory layout for the linker.
-    -   **This linker script is NOT included in this repository.**
-    -   You can typically obtain one by creating a new project for your target MCU in STM32CubeIDE or by generating it with STM32CubeMX.
-    -   The Makefile expects this script to be placed in the `App_Examples/SimpleLedToggle/` directory.
+3.  **STM32F3 Linker Script**: A template linker script (`App_Examples/SimpleLedToggle/stm32f303xc_flash.ld`) tailored for an **STM32F303VCT6** (256KB Flash, 40KB RAM) is now provided. **Users MUST verify and adapt this script** (especially memory origins and lengths) if using a different STM32F3 variant or a custom board layout. It defines standard sections and custom sections for MCAL modules.
 
 ## How to Build
 1.  Ensure all prerequisites listed above are met.
@@ -61,9 +60,9 @@ To build the sample application, you will need:
 
 ## Sample Application (`SimpleLedToggle`)
 The sample application provided in `App_Examples/SimpleLedToggle/` demonstrates basic usage of the Port and Dio drivers:
-- It initializes the Port driver using the post-build configuration defined in `Port_PBcfg.c`. This sets up the specific pin (e.g., PA5) as a GPIO output.
+- It initializes the Port driver using the post-build configuration defined in `Port_PBcfg.c`. This sets up the specific pin (e.g., PA5) as a GPIO output and PC13 as a button input.
 - It then initializes the Dio driver using its post-build configuration.
-- In an infinite loop, it calls `Dio_FlipChannel()` to toggle the state of the configured LED pin (PA5 in the example configuration).
+- In an infinite loop, it reads the button state and adjusts the blinking speed of the LED connected to PA5, which is toggled using `Dio_FlipChannel()`.
 - A simple software delay is used between toggles to make the blinking visible.
 
 ## Configuration
@@ -76,9 +75,10 @@ The implemented Dio and Port drivers aim to adhere to the AUTOSAR Classic Platfo
 
 ## Limitations / Future Work
 - **Basic Implementation**: This project provides a foundational set of drivers. Full validation, including compliance with AUTOSAR test suites, has not been performed.
-- **DET Stub**: The Development Error Tracer (DET) is currently a stub implementation. It allows code to compile but does not provide full error tracing capabilities.
-- **Linker Script Required**: Users must provide their own linker script appropriate for their specific STM32F3 target microcontroller.
-- **Limited MCAL Scope**: Only Dio, Port, and common base modules are included. Future work could involve adding other MCAL modules like Adc, Pwm, Spi, Can, etc.
-- **Testing**: Comprehensive unit and integration testing is required.
-- **Compiler Abstraction**: While `Compiler.h` is present, full compiler abstraction for various toolchains might need further refinement.
+- **DET Stub**: The Development Error Tracer (DET) is currently a stub implementation with basic circular buffer logging.
+- **Linker Script**: A template linker script is provided, but users must verify and adapt it for their specific STM32F3 variant and board.
+- **Limited MCAL Scope**: Only Dio, Port, and common base modules are included. Future work could involve adding other MCAL modules like Adc, Pwm, Spi, Can, Gpt etc.
+- **Testing**: Basic unit testing strategy defined; comprehensive tests are future work.
+- **Compiler Abstraction**: `Compiler.h` provides sectioning for GCC; further refinement for other compilers might be needed.
 - **Memory Mapping**: `MemMap.h` files are included as placeholders; actual memory section mapping is not yet implemented.
+- **Startup Code**: No specific ARM startup code (e.g., `startup_stm32f303xc.s`) is included; the linker script defines `Reset_Handler` as the entry point, which must be provided by the user/toolchain or as part of a more complete system setup.

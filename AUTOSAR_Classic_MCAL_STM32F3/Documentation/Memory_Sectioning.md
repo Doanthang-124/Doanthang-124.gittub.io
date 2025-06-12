@@ -40,7 +40,7 @@ Expands to:
 
 ## 2. Linker Script (`.ld` file)
 
-The linker script (e.g., `stm32f303xc_flash.ld`, **which is user-provided and not part of this repository**)
+The linker script (e.g., `App_Examples/SimpleLedToggle/stm32f303xc_flash.ld`, a template tailored for STM32F303VCT6 which is now provided in the project)
 is responsible for defining where these named sections are placed in the microcontroller's memory map.
 
 An excerpt from a linker script might look like this:

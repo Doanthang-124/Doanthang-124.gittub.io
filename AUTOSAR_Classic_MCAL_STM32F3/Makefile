@@ -28,7 +28,8 @@ COMMON_SRC_DIR := $(ROOT_DIR)/Common/Src
 CONFIG_SRC_DIR := $(ROOT_DIR)/Config  # PBcfg.c files are here
 DIO_SRC_DIR    := $(ROOT_DIR)/Dio/Src
 PORT_SRC_DIR   := $(ROOT_DIR)/Port/Src
-DET_SRC_DIR    := $(ROOT_DIR)/Det/Src # Added Det source directory
+DET_SRC_DIR    := $(ROOT_DIR)/Det/Src
+GPT_SRC_DIR    := $(ROOT_DIR)/Gpt/Src
 APP_SRC_DIR    := $(ROOT_DIR)/App_Examples/SimpleLedToggle
 
 # Include directories relative to ROOT_DIR
@@ -36,17 +37,13 @@ COMMON_INC_DIR := $(ROOT_DIR)/Common/Include
 CONFIG_INC_DIR := $(ROOT_DIR)/Config
 DIO_INC_DIR    := $(ROOT_DIR)/Dio/Include
 PORT_INC_DIR   := $(ROOT_DIR)/Port/Include
-DET_INC_DIR    := $(ROOT_DIR)/Det/Include # Added Det include directory
-PUBLIC_INC_DIR := $(ROOT_DIR)/Include # For Port.h, Dio.h
+DET_INC_DIR    := $(ROOT_DIR)/Det/Include
+GPT_INC_DIR    := $(ROOT_DIR)/Gpt/Include
+/* PUBLIC_INC_DIR is removed as headers are now module-specific */
 APP_INC_DIR    := $(ROOT_DIR)/App_Examples/SimpleLedToggle # If main.c had local headers
 
 # VPATH: List of directories where source files can be found
-VPATH = $(COMMON_SRC_DIR) \
-        $(CONFIG_SRC_DIR) \
-        $(DIO_SRC_DIR)    \
-        $(PORT_SRC_DIR)   \
-        $(DET_SRC_DIR)    \
-        $(APP_SRC_DIR)
+VPATH = $(COMMON_SRC_DIR):$(CONFIG_SRC_DIR):$(DIO_SRC_DIR):$(PORT_SRC_DIR):$(DET_SRC_DIR):$(GPT_SRC_DIR):$(APP_SRC_DIR)
 
 # C source files (just the basenames, VPATH will find them)
 C_SOURCES_BASENAMES = \
@@ -55,6 +52,8 @@ C_SOURCES_BASENAMES = \
     Dio.c             \
     Port_PBcfg.c      \
     Port.c            \
+    Gpt_PBcfg.c       \
+    Gpt.c             \
     main.c
 
 # Object files: All placed flat in BUILD_DIR
@@ -67,7 +66,7 @@ INCLUDES = \
     -I$(DIO_INC_DIR)    \
     -I$(PORT_INC_DIR)   \
     -I$(DET_INC_DIR)    \
-    -I$(PUBLIC_INC_DIR) \
+    -I$(GPT_INC_DIR)    \
     -I$(APP_INC_DIR)
 
 # Compiler flags
@@ -78,13 +77,12 @@ CFLAGS = $(COMMON_CFLAGS)
 
 # Linker script (STM32F303XC is for 256KB Flash devices like STM32F303VC)
 # This file needs to be present in the APP_SRC_DIR or path adjusted.
-# The subtask does not create this file.
 LINKER_SCRIPT = $(APP_SRC_DIR)/stm32f303xc_flash.ld
 
 # Linker flags
 LDFLAGS = $(CPU_FLAGS) -T$(LINKER_SCRIPT) -Wl,-Map=$(BUILD_DIR)/$(TARGET_NAME).map,--cref -Wl,--gc-sections --specs=nano.specs --specs=nosys.specs
 
-# Default rule: Build the ELF file
+# Default rule: Build the ELF file and associated formats
 all: $(BUILD_DIR)/$(TARGET_ELF) $(BUILD_DIR)/$(TARGET_BIN) $(BUILD_DIR)/$(TARGET_HEX)
 
 # Rule to link object files into an ELF executable

@@ -4,8 +4,8 @@
 /*==================================================================================================
 *                                        INCLUDE FILES
 ==================================================================================================*/
-#include "../Common/Include/Std_Types.h" /* Standard AUTOSAR Types */
-#include "../Config/Port_Cfg.h"      /* Port Driver Pre-Compile Configuration */
+#include "../../Common/Include/Std_Types.h" /* Standard AUTOSAR Types */
+#include "../../Config/Port_Cfg.h"      /* Port Driver Pre-Compile Configuration */
 
 /*==================================================================================================
 *                                           CONSTANTS

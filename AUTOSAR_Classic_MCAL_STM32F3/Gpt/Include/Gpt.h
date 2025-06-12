@@ -4,8 +4,8 @@
 /*==================================================================================================
 *                                        INCLUDE FILES
 ==================================================================================================*/
-#include "Std_Types.h"      /* Standard AUTOSAR Types (includes Compiler.h, Platform_Types.h) */
-#include "Gpt_Cfg.h"        /* GPT Driver Pre-Compile Configuration (to be created) */
+#include "../../Common/Include/Std_Types.h"      /* Standard AUTOSAR Types (includes Compiler.h, Platform_Types.h) */
+#include "../../Config/Gpt_Cfg.h"        /* GPT Driver Pre-Compile Configuration (to be created) */
 
 /*==================================================================================================
 *                                           CONSTANTS

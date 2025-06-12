@@ -4,8 +4,8 @@
 /*==================================================================================================
 *                                        INCLUDE FILES
 ==================================================================================================*/
-#include "../Common/Include/Std_Types.h"
-#include "../Config/Dio_Cfg.h" /* For DIO_DEV_ERROR_DETECT, DIO_VERSION_INFO_API etc. */
+#include "../../Common/Include/Std_Types.h"
+#include "../../Config/Dio_Cfg.h" /* For DIO_DEV_ERROR_DETECT, DIO_VERSION_INFO_API etc. */
 
 /*==================================================================================================
 *                                           CONSTANTS
