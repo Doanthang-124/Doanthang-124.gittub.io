@@ -4,128 +4,136 @@
 /*==================================================================================================
 *                                        INCLUDE FILES
 ==================================================================================================*/
-#include "../../Common/Include/Std_Types.h" /* Standard AUTOSAR Types */
-#include "../../Config/Port_Cfg.h"      /* Port Driver Pre-Compile Configuration */
+#include "../../Common/Include/Std_Types.h" /* Standard AUTOSAR Types (includes Compiler.h, Platform_Types.h) */
+#include "../../Config/Port_Cfg.h"      /* Port Driver Pre-Compile Configuration (PORT_DEV_ERROR_DETECT, etc.) */
+#include "../../Config/Port_PBcfg.h"    /* For Port_ConfigType and Port_PinConfigType definitions (Post-Build) */
 
 /*==================================================================================================
 *                                           CONSTANTS
 ==================================================================================================*/
 
-/* AUTOSAR Module and Vendor IDs */
-#define PORT_MODULE_ID                    124U
-#define PORT_VENDOR_ID                    0U   /* Replace with actual Vendor ID */
+/**
+ * @brief Module ID for the Port Driver module.
+ * @details As per AUTOSAR_SWS_StandardTypes.
+ */
+#define PORT_MODULE_ID                    124U /* Standard AUTOSAR Module ID for Port */
 
-/* AUTOSAR Instance ID */
-#define PORT_INSTANCE_ID                  0U
+/**
+ * @brief Vendor ID for this Port driver implementation.
+ * @details Replace with actual registered AUTOSAR Vendor ID.
+ */
+#define PORT_VENDOR_ID                    0U   /* Example: To be replaced by actual Vendor ID */
 
-/* Development Error Codes (if PORT_DEV_ERROR_DETECT is STD_ON) */
+/** @brief Software major version of this Port driver. */
+#define PORT_SW_MAJOR_VERSION             1U
+/** @brief Software minor version of this Port driver. */
+#define PORT_SW_MINOR_VERSION             0U
+/** @brief Software patch version of this Port driver. */
+#define PORT_SW_PATCH_VERSION             0U
+
+/** @brief AUTOSAR specification major version compatibility. */
+#define PORT_AR_RELEASE_MAJOR_VERSION     4U
+/** @brief AUTOSAR specification minor version compatibility. */
+#define PORT_AR_RELEASE_MINOR_VERSION     3U
+/** @brief AUTOSAR specification patch version compatibility. */
+#define PORT_AR_RELEASE_PATCH_VERSION     1U
+
+
+/* API Service IDs for Development Error Reporting (DET) */
+#define PORT_INIT_API_ID                      0x00U
+#define PORT_SET_PIN_DIRECTION_API_ID         0x01U
+#define PORT_REFRESH_PORT_DIRECTION_API_ID    0x02U
+#define PORT_GET_VERSION_INFO_API_ID          0x03U
+#define PORT_SET_PIN_MODE_API_ID              0x04U
+
+
+/* Development Error Codes reported to DET (if PORT_DEV_ERROR_DETECT is STD_ON from Port_Cfg.h) */
 #if (PORT_DEV_ERROR_DETECT == STD_ON)
-    #define PORT_E_PARAM_PIN                0x0AU  /* Invalid Port Pin ID requested */
-    #define PORT_E_DIRECTION_UNCHANGEABLE   0x0BU  /* Port Pin direction not configured as changeable */
-    #define PORT_E_PARAM_CONFIG             0x0CU  /* API service called with wrong parameter */
-    #define PORT_E_PARAM_INVALID_MODE       0x0DU  /* Invalid Port Pin Mode requested */
-    #define PORT_E_MODE_UNCHANGEABLE        0x0EU  /* Port Pin mode not configured as changeable */
-    #define PORT_E_PARAM_POINTER            0x10U  /* API service called with a NULL pointer */
-    #define PORT_E_UNINIT                   0x0FU  /* API service used without module initialization */
+    #define PORT_E_PARAM_PIN                  0x0AU  /**< Invalid Port Pin ID requested. (AUTOSAR SWS Port027) */
+    #define PORT_E_DIRECTION_UNCHANGEABLE     0x0BU  /**< Port Pin direction cannot be changed. (AUTOSAR SWS Port028) */
+    #define PORT_E_PARAM_CONFIG               0x0CU  /**< API Port_Init service called with wrong parameter. (AUTOSAR SWS Port029) */
+    #define PORT_E_PARAM_INVALID_MODE         0x0DU  /**< API Port_SetPinMode service called with invalid mode. (AUTOSAR SWS Port030) */
+    #define PORT_E_MODE_UNCHANGEABLE          0x0EU  /**< Port Pin mode cannot be changed. (AUTOSAR SWS Port031) */
+    #define PORT_E_UNINIT                     0x0FU  /**< API service called without module initialization. (AUTOSAR SWS Port033) */
+    #define PORT_E_PARAM_POINTER              0x10U  /**< API service called with a NULL pointer. (AUTOSAR SWS Port032) */
 #endif /* (PORT_DEV_ERROR_DETECT == STD_ON) */
-
-/* API Service IDs (for error reporting, mainly for Det_ReportError) */
-#define PORT_INIT_ID                      0x00U
-#define PORT_SETPINDIRECTION_ID           0x01U
-#define PORT_REFRESHPORTDIRECTION_ID      0x02U
-#define PORT_GETVERSIONINFO_ID            0x03U
-#define PORT_SETPINMODE_ID                0x04U
 
 
 /*==================================================================================================
 *                                             TYPES
 ==================================================================================================*/
 
-/* @brief Type for the symbolic name of a port pin. */
-/* This should be able to hold all possible pin IDs defined in Port_Cfg.h (e.g., up to 95 for 6 ports) */
+/**
+ * @brief Data type for the symbolic name of a port pin. (AUTOSAR SWS Port060)
+ * @details This type shall be uint8, capable of holding all pin IDs defined in Port_Cfg.h.
+ */
 typedef uint8 Port_PinType;
 
-/* @brief Possible directions of a port pin. */
+/**
+ * @brief Enumeration for the possible directions of a port pin. (AUTOSAR SWS Port061)
+ */
 typedef enum
 {
-    PORT_PIN_IN,  /* Sets port pin as input */
-    PORT_PIN_OUT  /* Sets port pin as output */
+    PORT_PIN_IN = 0U,  /**< Sets port pin direction as input. */
+    PORT_PIN_OUT       /**< Sets port pin direction as output. */
 } Port_PinDirectionType;
 
-/* @brief Possible modes of a port pin (MCU specific). */
-/* This enum covers common STM32F3 GPIO configurations. */
+
+/**
+ * @brief Enumeration for the possible modes of a port pin (MCU specific). (AUTOSAR SWS Port062)
+ * @details This covers common STM32F3 GPIO configurations. Values are chosen to be distinct.
+ */
 typedef enum
 {
-    PORT_PIN_MODE_GPIO_IN_ANALOG   = 0x00, /* Analog input */
-    PORT_PIN_MODE_GPIO_IN_FLOATING = 0x01, /* Input Floating (reset state for many pins) */
-    PORT_PIN_MODE_GPIO_IN_PULLDOWN = 0x02, /* Input with pull-down resistor */
-    PORT_PIN_MODE_GPIO_IN_PULLUP   = 0x03, /* Input with pull-up resistor */
+    PORT_PIN_MODE_GPIO_IN_ANALOG   = 0x00, /**< Analog input mode. */
+    PORT_PIN_MODE_GPIO_IN_FLOATING = 0x01, /**< Input Floating (reset state for many pins). */
+    PORT_PIN_MODE_GPIO_IN_PULLDOWN = 0x02, /**< Input with internal pull-down resistor enabled. */
+    PORT_PIN_MODE_GPIO_IN_PULLUP   = 0x03, /**< Input with internal pull-up resistor enabled. */
 
-    PORT_PIN_MODE_GPIO_OUT_PUSHPULL   = 0x10, /* Output Push-Pull */
-    PORT_PIN_MODE_GPIO_OUT_OPENDRAIN  = 0x11, /* Output Open-Drain */
+    PORT_PIN_MODE_GPIO_OUT_PUSHPULL   = 0x10, /**< General purpose output push-pull. */
+    PORT_PIN_MODE_GPIO_OUT_OPENDRAIN  = 0x11, /**< General purpose output open-drain. */
 
-    PORT_PIN_MODE_AF_PUSHPULL         = 0x20, /* Alternate Function Push-Pull */
-    PORT_PIN_MODE_AF_OPENDRAIN        = 0x21, /* Alternate Function Open-Drain */
+    PORT_PIN_MODE_AF_PUSHPULL         = 0x20, /**< Alternate Function push-pull. */
+    PORT_PIN_MODE_AF_OPENDRAIN        = 0x21, /**< Alternate Function open-drain. */
 
-    /* Default DIO modes for convenience, map to specific GPIO modes */
-    PORT_PIN_MODE_DIO                 = PORT_PIN_MODE_GPIO_OUT_PUSHPULL,
-    PORT_PIN_MODE_DIO_INPUT           = PORT_PIN_MODE_GPIO_IN_FLOATING,
-
-    PORT_PIN_MODE_NOT_USED            = 0xFF, /* If a pin is not used or unconfigured */
-    PORT_PIN_MODE_UNCHANGEABLE        = 0xFE  /* If mode is not changeable runtime */
+    PORT_PIN_MODE_NOT_USED            = 0xFF  /**< Pin is not configured or used by Port driver. */
 } Port_PinModeType;
 
 
-/* @brief Initial level for an output pin. */
+/** @brief Enumeration for initial level for an output pin. */
 typedef enum
 {
-    PORT_PIN_LEVEL_LOW,
-    PORT_PIN_LEVEL_HIGH
+    PORT_PIN_LEVEL_LOW = 0U, /**< Initial logical level LOW for an output pin. */
+    PORT_PIN_LEVEL_HIGH      /**< Initial logical level HIGH for an output pin. */
 } Port_PinInitialValueType;
 
-/* @brief Output speed settings for STM32F3 pins. */
+
+/** @brief Enumeration for output speed settings for STM32F3 pins (MCU specific). */
 typedef enum
 {
-    PORT_OSPEED_LOW         = 0x00U, /* Low speed */
-    PORT_OSPEED_MEDIUM      = 0x01U, /* Medium speed */
-    PORT_OSPEED_HIGH        = 0x02U, /* High speed */
-    PORT_OSPEED_VERY_HIGH   = 0x03U  /* Very High speed (STM32F3 specific, maps to 11 in OSPEEDR) */
+    PORT_OSPEED_LOW         = 0x00U, /**< Low speed. */
+    PORT_OSPEED_MEDIUM      = 0x01U, /**< Medium speed. */
+    PORT_OSPEED_HIGH        = 0x02U, /**< High speed. */
+    PORT_OSPEED_VERY_HIGH   = 0x03U  /**< Very High speed (STM32F3 specific, maps to 11B in OSPEEDR). */
 } Port_PinOutputSpeedType;
 
-/* @brief Pull-up/pull-down resistor configuration for a pin. */
+
+/** @brief Enumeration for pull-up/pull-down resistor configuration for a pin (MCU specific). */
 typedef enum
 {
-    PORT_PULL_NONE,    /* No pull-up or pull-down resistor */
-    PORT_PULL_UP,      /* Activate pull-up resistor */
-    PORT_PULL_DOWN     /* Activate pull-down resistor */
+    PORT_PULL_NONE = 0U, /**< No internal pull-up or pull-down resistor. */
+    PORT_PULL_UP,        /**< Internal pull-up resistor activated. */
+    PORT_PULL_DOWN       /**< Internal pull-down resistor activated. */
 } Port_PinPullType;
 
 
 /*
- * @brief Forward declaration for the detailed pin configuration structure.
- * @details The actual structure will be defined in Port_PBcfg.h for post-build configurations
- *          or could be in Port_Cfg.h for pre-compile.
+ * The types `Port_PinConfigType` (for individual pin configuration) and
+ * `Port_ConfigType` (for the overall Port driver configuration) are now
+ * fully defined in `Port_PBcfg.h` (included above).
+ * This makes `Port_PBcfg.h` the source of truth for these post-build structures,
+ * and `Port.h` consumes them for its API function prototypes.
  */
-struct Port_PinConfigType;
-
-/*
- * @brief Top-level configuration structure for the Port driver.
- * @details This structure contains pointers to arrays of pin configurations and other global settings.
- *          For post-build, an instance of this type (defined in Port_PBcfg.h using details from there)
- *          is passed to Port_Init().
- */
-typedef struct
-{
-    /** @brief Pointer to the array of individual pin configurations. */
-    const struct Port_PinConfigType* PinConfig;
-
-    /** @brief Number of pins configured in the PinConfig array. */
-    const Port_PinType NumberOfPins; /* Port_PinType might be uint8, ensure it's large enough for total pins */
-
-    /* Other global Port driver settings can be added here if needed */
-    /* For example, a default setting for unconfigured pins, or global clock enables if relevant */
-    /* uint32 GlobalPortSettings; */
-} Port_ConfigType;
 
 
 /*==================================================================================================
@@ -133,43 +141,63 @@ typedef struct
 ==================================================================================================*/
 
 /**
- * @brief Initializes the Port Driver module.
- * @param[in] ConfigPtr Pointer to the configuration set.
+ * @brief Initializes the Port Driver module. (AUTOSAR SWS Port050)
+ * @details This function sets the initial configuration (direction, mode, pull, speed, etc.)
+ *          for all port pins as defined in the post-build configuration.
+ *          It must be called before any other Port driver API service.
+ * @param[in] ConfigPtr Pointer to the post-build configuration set (type `Port_ConfigType` from `Port_PBcfg.h`).
  */
-extern FUNC(void, PORT_CODE) Port_Init(P2CONST(Port_ConfigType, AUTOMATIC, PORT_APPL_CONST) ConfigPtr);
+extern FUNC(void, PORT_CODE) Port_Init(
+    P2CONST(Port_ConfigType, AUTOMATIC, PORT_APPL_CONST) ConfigPtr
+);
 
-#if (PORT_SET_PIN_DIRECTION_API == STD_ON)
+#if (PORT_SET_PIN_DIRECTION_API == STD_ON) /* From Port_Cfg.h */
 /**
- * @brief Sets the port pin direction.
+ * @brief Sets the direction of a configurable port pin during runtime. (AUTOSAR SWS Port052)
+ * @details This function is only available if `PORT_SET_PIN_DIRECTION_API` is `STD_ON`.
+ *          The pin must also be configured as direction-changeable in the post-build configuration.
  * @param[in] Pin       Port Pin ID number.
- * @param[in] Direction Port Pin direction.
+ * @param[in] Direction New Port Pin direction (PORT_PIN_IN or PORT_PIN_OUT).
  */
-extern FUNC(void, PORT_CODE) Port_SetPinDirection(Port_PinType Pin, Port_PinDirectionType Direction);
-#endif
+extern FUNC(void, PORT_CODE) Port_SetPinDirection(
+    VAR(Port_PinType, AUTOMATIC) Pin,
+    VAR(Port_PinDirectionType, AUTOMATIC) Direction
+);
+#endif /* (PORT_SET_PIN_DIRECTION_API == STD_ON) */
 
 /**
- * @brief Refreshes port direction.
- * @details This function is called to set the direction of all unchangeable pins
- *          to the configured direction (e.g., after a reset).
+ * @brief Refreshes the direction of all port pins that are configured as non-changeable. (AUTOSAR SWS Port053)
+ * @details This function ensures that the direction of pins whose direction cannot be changed
+ *          at runtime is reset to their configured state. This might be useful after
+ *          certain low-power modes or error conditions.
  */
 extern FUNC(void, PORT_CODE) Port_RefreshPortDirection(void);
 
-#if (PORT_SET_PIN_MODE_API == STD_ON)
+#if (PORT_SET_PIN_MODE_API == STD_ON) /* From Port_Cfg.h */
 /**
- * @brief Sets the port pin mode.
+ * @brief Sets the mode of a configurable port pin during runtime. (AUTOSAR SWS Port054)
+ * @details This function is only available if `PORT_SET_PIN_MODE_API` is `STD_ON`.
+ *          The pin must also be configured as mode-changeable in the post-build configuration.
  * @param[in] Pin   Port Pin ID number.
- * @param[in] Mode  New Port Pin mode to be set.
+ * @param[in] Mode  New Port Pin mode to be set (from `Port_PinModeType`).
  */
-extern FUNC(void, PORT_CODE) Port_SetPinMode(Port_PinType Pin, Port_PinModeType Mode);
-#endif
+extern FUNC(void, PORT_CODE) Port_SetPinMode(
+    VAR(Port_PinType, AUTOMATIC) Pin,
+    VAR(Port_PinModeType, AUTOMATIC) Mode
+);
+#endif /* (PORT_SET_PIN_MODE_API == STD_ON) */
 
-#if (PORT_VERSION_INFO_API == STD_ON)
+#if (PORT_VERSION_INFO_API == STD_ON) /* From Port_Cfg.h */
 /**
- * @brief Returns the version information of this module.
- * @param[out] VersionInfo Pointer to where to store the version information.
+ * @brief Returns the version information of the Port Driver module. (AUTOSAR SWS Port051)
+ * @details This function is only available if `PORT_VERSION_INFO_API` is `STD_ON`.
+ * @param[out] VersionInfoPtr Pointer to a `Std_VersionInfoType` structure where the version
+ *                            information will be stored. This pointer must not be NULL.
  */
-extern FUNC(void, PORT_CODE) Port_GetVersionInfo(P2VAR(Std_VersionInfoType, AUTOMATIC, PORT_APPL_DATA) VersionInfo);
-#endif
+extern FUNC(void, PORT_CODE) Port_GetVersionInfo(
+    P2VAR(Std_VersionInfoType, AUTOMATIC, PORT_APPL_DATA) VersionInfoPtr
+);
+#endif /* (PORT_VERSION_INFO_API == STD_ON) */
 
 
 #endif /* PORT_H */

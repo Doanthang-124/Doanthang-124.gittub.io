@@ -4,30 +4,63 @@
 /*==================================================================================================
 *                                        INCLUDE FILES
 ==================================================================================================*/
-/* Include Platform_Types.h for platform-specific type definitions (boolean, uint8, etc.) */
-/* This file is expected to be in the same directory or an include path must be provided. */
-/* Assuming it's in the same "Common/Include" directory for this project structure. */
-#include "Compiler.h"       /* For FUNC, VAR, CONST macros and memory classes */
-#include "Platform_Types.h"
+#include "Platform_Types.h" /* For basic platform types (uint8, boolean, etc.) */
+#include "Compiler.h"       /* For compiler abstraction macros (FUNC, VAR, CONST, STATIC, etc.) */
 
 /*==================================================================================================
-*                                           CONSTANTS
+*                                       DEFINES AND MACROS
 ==================================================================================================*/
 
-/* Standard Return Values for Std_ReturnType */
+/**
+ * @brief Symbol to define API services as ON (enabled).
+ * @details Adheres to MISRA C:2012 Rule 10.3 by using unsigned suffix U.
+ */
+#ifndef STD_ON
+    #define STD_ON          1U
+#endif
+
+/**
+ * @brief Symbol to define API services as OFF (disabled).
+ * @details Adheres to MISRA C:2012 Rule 10.3 by using unsigned suffix U.
+ */
+#ifndef STD_OFF
+    #define STD_OFF         0U
+#endif
+
+/** @brief Represents a `TRUE` boolean value. */
+#ifndef TRUE
+    #define TRUE            1U  /**< @brief Standard TRUE value (boolean) */
+#endif
+
+/** @brief Represents a `FALSE` boolean value. */
+#ifndef FALSE
+    #define FALSE           0U  /**< @brief Standard FALSE value (boolean) */
+#endif
+
+
+/**
+ * @brief Standard return type for many AUTOSAR APIs, representing success.
+ * @details Value is 0x00. Uses Std_ReturnType.
+ *          Adheres to MISRA C:2012 Rule 10.1, 10.3.
+ */
 #define E_OK            ((Std_ReturnType)0x00U)
+
+/**
+ * @brief Standard return type for many AUTOSAR APIs, representing failure.
+ * @details Value is 0x01. Uses Std_ReturnType.
+ *          Adheres to MISRA C:2012 Rule 10.1, 10.3.
+ */
 #define E_NOT_OK        ((Std_ReturnType)0x01U)
 
-/* Boolean Values */
-/* These are standard AUTOSAR values for boolean type. Platform_Types.h defines 'boolean' type. */
-#ifndef TRUE
-    #define TRUE            1U
-#endif
-#ifndef FALSE
-    #define FALSE           0U
-#endif
 
-/* NULL Pointer Definition */
+/**
+ * @brief Definition of a NULL pointer.
+ * @details Cast to (void *) for type safety and to satisfy MISRA C:2012 rules
+ *          (e.g., Rule 11.5 - not converting pointer to void to pointer to object,
+ *           but (void*)0 is a common way to define NULL_PTR).
+ *          MISRA C:2012 Rule 11.9: "The macro NULL shall be defined as a null pointer constant."
+ *          A null pointer constant is an integer literal with value 0, or such an expression cast to void*.
+ */
 #ifndef NULL_PTR
     #define NULL_PTR ((void *)0)
 #endif
@@ -38,55 +71,24 @@
 
 /**
  * @brief Standard AUTOSAR return type.
- * @details This type shall be used as the return type of AUTOSAR functions that return a standard error status.
- *          It relies on `uint8` which is defined in `Platform_Types.h`.
+ * @details This type is used for functions that return a success or failure status.
+ *          It is based on `uint8` from `Platform_Types.h`.
  */
 typedef uint8 Std_ReturnType;
 
+
 /**
- * @brief Structure for version information.
- * @details This type shall be used to store the version information of a module.
- *          The version information consists of:
- *          - vendorID: The ID of the vendor.
- *          - moduleID: The ID of the module.
- *          - sw_major_version: The major software version number.
- *          - sw_minor_version: The minor software version number.
- *          - sw_patch_version: The patch software version number.
- *          All version numbers are BCD coded.
+ * @brief Structure for holding version information of a BSW module.
+ * @details This structure is used by `Xxx_GetVersionInfo()` APIs.
+ *          Members use fixed-width types from `Platform_Types.h`.
  */
 typedef struct
 {
-  uint16 vendorID;
-  uint16 moduleID;
-  uint8  sw_major_version;
-  uint8  sw_minor_version;
-  uint8  sw_patch_version;
+    uint16  vendorID;           /**< @brief Vendor ID for the module. */
+    uint16  moduleID;           /**< @brief Module ID. */
+    uint8   sw_major_version;   /**< @brief Software major version. */
+    uint8   sw_minor_version;   /**< @brief Software minor version. */
+    uint8   sw_patch_version;   /**< @brief Software patch version. */
 } Std_VersionInfoType;
-
-/*==================================================================================================
-*                                         MACROS
-==================================================================================================*/
-
-/*
- * Standard ON/OFF Definitions.
- * These are typically used for configuration switches.
- * Platform_Types.h or another common header might also define these.
- * Ensure they are defined once. Std_Types.h is a common place.
- */
-#ifndef STD_ON
-    #define STD_ON          0x01U
-#endif
-
-#ifndef STD_OFF
-    #define STD_OFF         0x00U
-#endif
-
-#ifndef STD_HIGH
-    #define STD_HIGH        0x01U   /* Physical state 5V or 3.3V */
-#endif
-
-#ifndef STD_LOW
-    #define STD_LOW         0x00U   /* Physical state 0V */
-#endif
 
 #endif /* STD_TYPES_H */

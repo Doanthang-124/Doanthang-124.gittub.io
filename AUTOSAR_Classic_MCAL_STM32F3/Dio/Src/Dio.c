@@ -1,525 +1,478 @@
 /*==================================================================================================
 *   Project              : AUTOSAR 4.x MCAL
 *   Platform             : STM32
-*   Peripheral           : GPIO
+*   Peripheral           : DIO
 *   Dependencies         : STM32F3xx Series
 *
 *   Autosar Version      : 4.3.1
 *   Autosar Revision     : ASR_REL_4_3_REV_0001
 *   Sw Version           : 1.0.0
-*   Build Version        : S32K14X_MCAL_1_0_0_RTM_ASR_REL_4_3_REV_0001_20190426
+*   Build Version        : DIO_MCAL_1_0_0_RTM_ASR_REL_4_3_REV_0001_2024xxxx
 *
-*   (c) Copyright 2006-2016 Freescale Semiconductor, Inc.
-*   (c) Copyright 2017-2019 NXP
-*   (c) Copyright 2023 YourName
-*   All Rights Reserved.
-==================================================================================================*/
-/*==================================================================================================
 ==================================================================================================*/
 
-#include "../Include/Dio.h"         /* Header file for Dio definitions */
-#include "../Include/Dio_Regs.h"    /* Header file for register definitions (includes stm32f3xx.h) */
-#include "../../Common/Include/Mcal.h" /* For STATIC definition, might be in Compiler.h directly */
+#include "../Include/Dio.h"         /* Includes Dio_Cfg.h, Dio_PBcfg.h, Std_Types.h (and Compiler.h) */
+#include "../Include/Dio_Regs.h"     /* Includes stm32f3xx.h for register definitions */
 
-#if (DIO_DEV_ERROR_DETECT == STD_ON)
-    /* Include Det.h only if DIO_DEV_ERROR_DETECT is STD_ON */
-    /* Path is relative to Dio/Src directory */
-    #include "../../Common/Include/Det.h"
+#if (DIO_DEV_ERROR_DETECT == STD_ON) /* From Dio_Cfg.h */
+    #include "../../Det/Include/Det.h"   /* DET header */
 #endif
 
 /*==================================================================================================
 *                                       VERSION CHECKS
 ==================================================================================================*/
-/* Check if Dio.c source file and Dio.h header file are of the same vendor */
-#if (DIO_VENDOR_ID != DIO_VENDOR_ID_H)
-    #error "Dio.c and Dio.h have different vendor ids"
-#endif
-
-/* Check if Dio.c source file and Dio.h header file are of the same Autosar version */
-#if ((DIO_AR_RELEASE_MAJOR_VERSION != DIO_AR_RELEASE_MAJOR_VERSION_H) || \
-     (DIO_AR_RELEASE_MINOR_VERSION != DIO_AR_RELEASE_MINOR_VERSION_H) || \
-     (DIO_AR_RELEASE_REVISION_VERSION != DIO_AR_RELEASE_REVISION_VERSION_H))
-    #error "AutoSar Version Numbers of Dio.c and Dio.h are different"
-#endif
-
-/* Check if Dio.c source file and Dio.h header file are of the same Software version */
-#if ((DIO_SW_MAJOR_VERSION != DIO_SW_MAJOR_VERSION_H) || \
-     (DIO_SW_MINOR_VERSION != DIO_SW_MINOR_VERSION_H) || \
-     (DIO_SW_PATCH_VERSION != DIO_SW_PATCH_VERSION_H))
+/* Check if source file and DIO header file are of the same software version */
+#if ((DIO_SW_MAJOR_VERSION != 1U) ||      \
+     (DIO_SW_MINOR_VERSION != 0U) ||      \
+     (DIO_SW_PATCH_VERSION != 0U))
     #error "Software Version Numbers of Dio.c and Dio.h are different"
 #endif
 
-/* Check if Dio.c source file and Dio_Regs.h header file are of the same vendor */
-/* (Assuming Dio_Regs.h will have these macros, if not, this check might need adjustment) */
-/*
-#if (DIO_VENDOR_ID != DIO_REGS_VENDOR_ID)
-    #error "Dio.c and Dio_Regs.h have different vendor ids"
+/* Check if source file and DIO header file are of the same AUTOSAR version */
+#if ((DIO_AR_RELEASE_MAJOR_VERSION != 4U) || \
+     (DIO_AR_RELEASE_MINOR_VERSION != 3U) || \
+     (DIO_AR_RELEASE_PATCH_VERSION != 1U))
+    #error "AUTOSAR Version Numbers of Dio.c and Dio.h are different"
 #endif
-*/
 
-/* Check if Dio.c source file and Dio_Regs.h header file are of the same Autosar version */
-/*
-#if ((DIO_AR_RELEASE_MAJOR_VERSION != DIO_REGS_AR_RELEASE_MAJOR_VERSION) || \
-     (DIO_AR_RELEASE_MINOR_VERSION != DIO_REGS_AR_RELEASE_MINOR_VERSION) || \
-     (DIO_AR_RELEASE_REVISION_VERSION != DIO_REGS_AR_RELEASE_REVISION_VERSION))
-    #error "AutoSar Version Numbers of Dio.c and Dio_Regs.h are different"
-#endif
-*/
+/*==================================================================================================
+*                                      DEFINES AND MACROS
+==================================================================================================*/
+/** @brief Number of pins per GPIO port on this MCU (STM32 typically have 16 pins). */
+#define DIO_PINS_PER_PORT              (16U)
 
-/* Check if Dio.c source file and Dio_Regs.h header file are of the same Software version */
-/*
-#if ((DIO_SW_MAJOR_VERSION != DIO_REGS_SW_MAJOR_VERSION) || \
-     (DIO_SW_MINOR_VERSION != DIO_REGS_SW_MINOR_VERSION) || \
-     (DIO_SW_PATCH_VERSION != DIO_REGS_SW_PATCH_VERSION))
-    #error "Software Version Numbers of Dio.c and Dio_Regs.h are different"
-#endif
-*/
+/** @brief Maximum valid Port ID (0-5 for PortA-PortF, assuming 6 ports). */
+/* This should ideally be derived from configuration or MCU capabilities. */
+#define DIO_MAX_PORT_ID                (5U)
+
+/** @brief Maximum valid Channel ID. (e.g., (5+1) ports * 16 pins/port - 1 = 95) */
+#define DIO_MAX_CHANNEL_ID             (((DIO_MAX_PORT_ID + 1U) * DIO_PINS_PER_PORT) - 1U)
+
 
 /*==================================================================================================
 *                                          VARIABLES
 ==================================================================================================*/
+#define DIO_START_SEC_VAR_INIT_UNSPECIFIED
+/* #include "MemMap.h" */ /* Or Dio_MemMap.h */
 
-/* Static global variable to store the configuration pointer */
-/* This pointer is initialized by Dio_Init(). */
-STATIC P2CONST(Dio_ConfigType, DIO_VAR, DIO_APPL_CONST) Dio_ModuleConfigPtr = NULL_PTR;
+/** @brief Pointer to the current DIO driver configuration set. Initialized by Dio_Init(). */
+STATIC P2CONST(Dio_ConfigType, DIO_VAR, DIO_APPL_CONST) Dio_pxCurrentConfig = NULL_PTR;
 
-/* Variable to store the state of the DIO driver */
-STATIC VAR(boolean, DIO_VAR) Dio_IsInitialized = FALSE;
+#define DIO_STOP_SEC_VAR_INIT_UNSPECIFIED
+/* #include "MemMap.h" */
+
+#define DIO_START_SEC_VAR_CLEARED_UNSPECIFIED
+/* #include "MemMap.h" */
+
+/** @brief Status of the DIO driver initialization. */
+STATIC VAR(boolean, DIO_VAR) Dio_bIsInitialized = FALSE;
+
+#define DIO_STOP_SEC_VAR_CLEARED_UNSPECIFIED
+/* #include "MemMap.h" */
 
 
 /*==================================================================================================
 *                                   INTERNAL HELPER FUNCTIONS
 ==================================================================================================*/
+#define DIO_START_SEC_CODE
+/* #include "MemMap.h" */
 
 /**
- * @brief Returns the GPIO peripheral base address for a given Dio_PortType.
- *
- * @param[in] PortId  The ID of the DIO port.
- * @return GPIO_TypeDef* Pointer to the GPIO peripheral registers, or NULL_PTR if PortId is invalid.
- *
- * @api private
+ * @brief Retrieves the base address of the GPIO port for a given DIO PortType ID.
+ * @param[in] PortId The ID of the DIO port (0 for PortA, 1 for PortB, etc.).
+ * @return GPIO_TypeDef* Pointer to the GPIO port registers, or NULL_PTR if PortId is invalid.
  */
-STATIC FUNC(GPIO_TypeDef*, DIO_CODE) Dio_GetPortBaseAddress(Dio_PortType PortId)
+STATIC FUNC(P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_CODE), DIO_CODE) Dio_Internal_GetPortBaseAddr(VAR(Dio_PortType, AUTOMATIC) PortId)
 {
-    GPIO_TypeDef* GpioPortAddr = NULL_PTR;
-    switch(PortId)
+    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) pxGpioPort = NULL_PTR;
+
+    switch(PortId) /* PortId values correspond to DIO_PORT_A, DIO_PORT_B, ... from Dio_Cfg.h */
     {
-        case DIO_PORT_A: GpioPortAddr = GPIOA; break;
-        case DIO_PORT_B: GpioPortAddr = GPIOB; break;
-        case DIO_PORT_C: GpioPortAddr = GPIOC; break;
-        case DIO_PORT_D: GpioPortAddr = GPIOD; break;
-        case DIO_PORT_E: GpioPortAddr = GPIOE; break;
-        case DIO_PORT_F: GpioPortAddr = GPIOF; break;
+        case 0U: pxGpioPort = GPIOA; break;
+        case 1U: pxGpioPort = GPIOB; break;
+        case 2U: pxGpioPort = GPIOC; break;
+        case 3U: pxGpioPort = GPIOD; break;
+        case 4U: pxGpioPort = GPIOE; break;
+        case 5U: pxGpioPort = GPIOF; break;
+        /* Add cases for GPIOG, GPIOH if supported by the target MCU and configured */
         default:
-            /* Optional: Report error if PortId is out of expected range, */
-            /* though primary validation should be in the public API functions. */
-#if (DIO_DEV_ERROR_DETECT == STD_ON)
-            Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_INTERNAL_API_ID, DIO_E_PARAM_INVALID_PORT_ID_INTERNAL);
-#endif
+            /* Invalid PortId. This case should ideally not be reached if PortId is validated by the caller. */
+            /* No DET report here to avoid multiple reports if caller also reports. */
             break;
     }
-    return GpioPortAddr;
+    return pxGpioPort;
 }
+
 
 /*==================================================================================================
 *                                       GLOBAL FUNCTIONS
 ==================================================================================================*/
 
 /**
- * @brief Initializes the DIO driver.
- * @details This function initializes all configured DIO channels, ports, and groups
- *          according to the provided configuration structure.
- *
- * @param[in] ConfigPtr Pointer to the post-build configuration structure.
- *
- * @implements Dio_Init_Activity
+ * @see Dio.h (SWS_Dio_00099)
  */
 FUNC(void, DIO_CODE) Dio_Init(P2CONST(Dio_ConfigType, AUTOMATIC, DIO_APPL_CONST) ConfigPtr)
 {
 #if (DIO_DEV_ERROR_DETECT == STD_ON)
-    /* For Post-Build configurations, ConfigPtr must not be NULL. */
-    /* For Pre-Compile, ConfigPtr might be NULL if configuration is fixed. */
-    /* Assuming this driver primarily supports Post-Build as per Dio_PBcfg.h */
-    if (NULL_PTR == ConfigPtr)
+    if (Dio_bIsInitialized == TRUE)
     {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_INIT_ID, DIO_E_PARAM_CONFIG);
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_INIT_API_ID, DIO_E_ALREADY_INITIALIZED);
     }
-    else
-#endif /* (DIO_DEV_ERROR_DETECT == STD_ON) */
+    else if (NULL_PTR == ConfigPtr) /* Check for NULL pointer if DET is ON */
     {
-        Dio_ModuleConfigPtr = ConfigPtr;
-        /*
-         * Additional initialization steps based on ConfigPtr can be performed here.
-         * For example, iterating through configured channels/ports in Dio_ModuleConfigPtr
-         * to apply any initial states if the Port driver doesn't handle all of it.
-         * However, for a pure DIO driver, this is often minimal, as the Port
-         * driver is responsible for pin direction, mode, pull-ups, etc.
-         * The Dio_Init mainly makes the configuration available to other Dio functions.
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_INIT_API_ID, DIO_E_PARAM_POINTER);
+    }
+    /* Add more ConfigPtr validation if its members are used by Dio_Init, e.g.
+     * else if (ConfigPtr->NumChannels > DIO_MAX_CONFIGURED_CHANNELS_IN_PB) { ... }
+     */
+    else
+#endif /* DIO_DEV_ERROR_DETECT == STD_ON */
+    {
+        Dio_pxCurrentConfig = ConfigPtr; /* Store pointer to post-build configuration */
+        Dio_bIsInitialized = TRUE;       /* Set state to initialized */
+
+        /* The DIO driver itself usually does not perform pin configuration (direction, mode, etc.).
+         * This is typically the responsibility of the Port driver. Dio_Init's main role is to
+         * make the configuration available and mark the module as initialized.
+         * If specific initializations related to DIO behavior (not pin setup) were needed,
+         * they would be done here based on Dio_pxCurrentConfig.
          */
-        Dio_IsInitialized = TRUE;
     }
 }
 
-/**
- * @brief Reads the level of a specified DIO channel.
- * @param[in] ChannelId The ID of the DIO channel to read.
- * @return Dio_LevelType The level of the channel (STD_HIGH or STD_LOW).
- *
- * @implements Dio_ReadChannel_Activity
- */
-FUNC(Dio_LevelType, DIO_CODE) Dio_ReadChannel(Dio_ChannelType ChannelId)
-{
-    VAR(Dio_LevelType, AUTOMATIC) ChannelLevel = STD_LOW;
-    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) GpioPortAddr;
-    VAR(uint8, AUTOMATIC) PinIndex;
-    VAR(Dio_PortType, AUTOMATIC) PortId;
-
-#if (DIO_DEV_ERROR_DETECT == STD_ON)
-    if (FALSE == Dio_IsInitialized)
-    {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READCHANNEL_ID, DIO_E_UNINIT);
-        return STD_LOW; /* Return a default value */
-    }
-    /* Basic check for ChannelId validity based on STM32F3 max possible (PortF, Pin15 -> 6*16-1 = 95) */
-    /* A more robust check would use Dio_ModuleConfigPtr to see if ChannelId is configured. */
-    if (ChannelId >= (uint8)96) /* Max 6 ports * 16 pins/port */
-    {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READCHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
-        return STD_LOW; /* Return a default value */
-    }
-#endif
-
-    PortId = (Dio_PortType)(ChannelId / 16U); /* Determine port from ChannelId */
-    PinIndex = (uint8)(ChannelId % 16U);    /* Determine pin index within the port */
-    GpioPortAddr = Dio_GetPortBaseAddress(PortId);
-
-    if (NULL_PTR != GpioPortAddr)
-    {
-        if ((GpioPortAddr->IDR & (1UL << PinIndex)) != 0U)
-        {
-            ChannelLevel = STD_HIGH;
-        }
-        else
-        {
-            ChannelLevel = STD_LOW;
-        }
-    }
-#if (DIO_DEV_ERROR_DETECT == STD_ON)
-    else /* GpioPortAddr was NULL, Dio_GetPortBaseAddress might have reported error */
-    {
-        /* Optionally report another error here if Dio_GetPortBaseAddress doesn't, */
-        /* or rely on its DET call for invalid PortId derived from ChannelId. */
-        /* Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READCHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID); */
-    }
-#endif
-    return ChannelLevel;
-}
 
 /**
- * @brief Writes the specified level to a DIO channel.
- * @param[in] ChannelId The ID of the DIO channel to write.
- * @param[in] Level The level to write (STD_HIGH or STD_LOW).
- *
- * @implements Dio_WriteChannel_Activity
+ * @see Dio.h (SWS_Dio_00053)
  */
-FUNC(void, DIO_CODE) Dio_WriteChannel(Dio_ChannelType ChannelId, Dio_LevelType Level)
+FUNC(Dio_LevelType, DIO_CODE) Dio_ReadChannel(VAR(Dio_ChannelType, AUTOMATIC) ChannelId)
 {
-    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) GpioPortAddr;
-    VAR(uint8, AUTOMATIC) PinIndex;
-    VAR(Dio_PortType, AUTOMATIC) PortId;
+    VAR(Dio_LevelType, AUTOMATIC) eChannelLevel = STD_LOW; /* Default return for error cases or if pin is low */
+    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) pxPortBaseAddr;
+    VAR(Dio_PortType, AUTOMATIC) u8PortId;
+    VAR(uint8, AUTOMATIC) u8PinIndex;
 
 #if (DIO_DEV_ERROR_DETECT == STD_ON)
-    if (FALSE == Dio_IsInitialized)
+    if (Dio_bIsInitialized == FALSE)
     {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITECHANNEL_ID, DIO_E_UNINIT);
-        return;
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READ_CHANNEL_API_ID, DIO_E_UNINIT);
+        /* eChannelLevel remains STD_LOW */
     }
-    if (ChannelId >= (uint8)96)
+    else if (ChannelId > DIO_MAX_CHANNEL_ID) /* Validate ChannelId against max possible */
     {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITECHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
-        return;
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READ_CHANNEL_API_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
+        /* eChannelLevel remains STD_LOW */
     }
-    if ((Level != STD_HIGH) && (Level != STD_LOW))
-    {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITECHANNEL_ID, DIO_E_PARAM_INVALID_LEVEL);
-        return;
-    }
-#endif
-
-    PortId = (Dio_PortType)(ChannelId / 16U);
-    PinIndex = (uint8)(ChannelId % 16U);
-    GpioPortAddr = Dio_GetPortBaseAddress(PortId);
-
-    if (NULL_PTR != GpioPortAddr)
-    {
-        if (Level == STD_HIGH)
-        {
-            GpioPortAddr->BSRR = (1UL << PinIndex); /* Set bit */
-        }
-        else
-        {
-            GpioPortAddr->BSRR = (1UL << (PinIndex + 16U)); /* Reset bit (using BRR part of BSRR) */
-        }
-    }
-#if (DIO_DEV_ERROR_DETECT == STD_ON)
     else
+#endif /* DIO_DEV_ERROR_DETECT == STD_ON */
     {
-        /* Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITECHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID); */
-    }
+        u8PortId = (Dio_PortType)(ChannelId / DIO_PINS_PER_PORT);
+        u8PinIndex = (uint8)(ChannelId % DIO_PINS_PER_PORT);
+        pxPortBaseAddr = Dio_Internal_GetPortBaseAddr(u8PortId);
+
+        if (NULL_PTR != pxPortBaseAddr)
+        {
+            if ((pxPortBaseAddr->IDR & (1UL << u8PinIndex)) != 0U)
+            {
+                eChannelLevel = STD_HIGH;
+            }
+            /* else eChannelLevel remains STD_LOW (already initialized) */
+        }
+#if (DIO_DEV_ERROR_DETECT == STD_ON)
+        else /* pxPortBaseAddr is NULL, implies invalid PortId derived from ChannelId */
+        {
+            /* This specific error might be redundant if ChannelId check is robust and mapping is contiguous.
+               However, if Dio_Internal_GetPortBaseAddr has other reasons to return NULL for a valid-looking PortId
+               (e.g., port not enabled/clocked in a more complex system), this DET could be useful.
+               For now, assume ChannelId > DIO_MAX_CHANNEL_ID covers invalid port derivation.
+            */
+        }
 #endif
+    }
+    return eChannelLevel;
 }
+
 
 /**
- * @brief Reads the level of all channels of a specified DIO port.
- * @param[in] PortId The ID of the DIO port to read.
- * @return Dio_PortLevelType The combined levels of all channels in the port.
- *
- * @implements Dio_ReadPort_Activity
+ * @see Dio.h (SWS_Dio_00056)
  */
-FUNC(Dio_PortLevelType, DIO_CODE) Dio_ReadPort(Dio_PortType PortId)
+FUNC(void, DIO_CODE) Dio_WriteChannel(VAR(Dio_ChannelType, AUTOMATIC) ChannelId, VAR(Dio_LevelType, AUTOMATIC) Level)
 {
-    VAR(Dio_PortLevelType, AUTOMATIC) PortLevel = 0U;
-    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) GpioPortAddr;
+    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) pxPortBaseAddr;
+    VAR(Dio_PortType, AUTOMATIC) u8PortId;
+    VAR(uint8, AUTOMATIC) u8PinIndex;
 
 #if (DIO_DEV_ERROR_DETECT == STD_ON)
-    if (FALSE == Dio_IsInitialized)
+    if (Dio_bIsInitialized == FALSE)
     {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READPORT_ID, DIO_E_UNINIT);
-        return 0U; /* Return a default value */
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITE_CHANNEL_API_ID, DIO_E_UNINIT);
     }
-    if (PortId >= (uint8)6) /* Assuming max Port F (0-5) */
+    else if (ChannelId > DIO_MAX_CHANNEL_ID)
     {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READPORT_ID, DIO_E_PARAM_INVALID_PORT_ID);
-        return 0U; /* Return a default value */
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITE_CHANNEL_API_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
     }
-#endif
+    else if ((Level != STD_HIGH) && (Level != STD_LOW)) /* Validate Level parameter */
+    {
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITE_CHANNEL_API_ID, DIO_E_PARAM_INVALID_LEVEL);
+    }
+    else
+#endif /* DIO_DEV_ERROR_DETECT == STD_ON */
+    {
+        u8PortId = (Dio_PortType)(ChannelId / DIO_PINS_PER_PORT);
+        u8PinIndex = (uint8)(ChannelId % DIO_PINS_PER_PORT);
+        pxPortBaseAddr = Dio_Internal_GetPortBaseAddr(u8PortId);
 
-    GpioPortAddr = Dio_GetPortBaseAddress(PortId);
-
-    if (NULL_PTR != GpioPortAddr)
-    {
-        PortLevel = (Dio_PortLevelType)(GpioPortAddr->IDR & 0xFFFFU); /* Read all 16 pins of IDR */
+        if (NULL_PTR != pxPortBaseAddr)
+        {
+            if (Level == STD_HIGH)
+            {
+                pxPortBaseAddr->BSRR = (1UL << u8PinIndex); /* Atomic set */
+            }
+            else
+            {
+                pxPortBaseAddr->BSRR = (1UL << (u8PinIndex + DIO_PINS_PER_PORT)); /* Atomic reset */
+            }
+        }
     }
-    /* No specific DET call if GpioPortAddr is NULL here, as Dio_GetPortBaseAddress would have reported it. */
-    return PortLevel;
 }
-
-/**
- * @brief Writes the specified levels to all channels of a DIO port.
- * @param[in] PortId The ID of the DIO port to write.
- * @param[in] Level The levels to write to the port.
- *
- * @implements Dio_WritePort_Activity
- */
-FUNC(void, DIO_CODE) Dio_WritePort(Dio_PortType PortId, Dio_PortLevelType Level)
-{
-    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) GpioPortAddr;
-
-#if (DIO_DEV_ERROR_DETECT == STD_ON)
-    if (FALSE == Dio_IsInitialized)
-    {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITEPORT_ID, DIO_E_UNINIT);
-        return;
-    }
-    if (PortId >= (uint8)6)
-    {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITEPORT_ID, DIO_E_PARAM_INVALID_PORT_ID);
-        return;
-    }
-#endif
-
-    GpioPortAddr = Dio_GetPortBaseAddress(PortId);
-
-    if (NULL_PTR != GpioPortAddr)
-    {
-        GpioPortAddr->ODR = (uint32_t)Level; /* Write directly to ODR */
-    }
-    /* No specific DET call if GpioPortAddr is NULL here. */
-}
-
-
-#if (DIO_VERSION_INFO_API == STD_ON)
-/**
- * @brief Returns the version information of the DIO module.
- * @param[out] VersionInfo Pointer to where to store the version information.
- *
- * @implements Dio_GetVersionInfo_Activity
- */
-FUNC(void, DIO_CODE) Dio_GetVersionInfo(P2VAR(Std_VersionInfoType, AUTOMATIC, DIO_APPL_DATA) VersionInfo)
-{
-#if (DIO_DEV_ERROR_DETECT == STD_ON)
-    if (NULL_PTR == VersionInfo)
-    {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_GETVERSIONINFO_ID, DIO_E_PARAM_POINTER);
-        return;
-    }
-#endif
-    VersionInfo->vendorID         = DIO_VENDOR_ID;
-    VersionInfo->moduleID         = DIO_MODULE_ID;
-    VersionInfo->sw_major_version = DIO_SW_MAJOR_VERSION;
-    VersionInfo->sw_minor_version = DIO_SW_MINOR_VERSION;
-    VersionInfo->sw_patch_version = DIO_SW_PATCH_VERSION;
-}
-#endif /* (DIO_VERSION_INFO_API == STD_ON) */
 
 
 #if (DIO_FLIP_CHANNEL_API == STD_ON)
 /**
- * @brief Flips the level of a specified DIO channel.
- * @param[in] ChannelId The ID of the DIO channel to flip.
- * @return Dio_LevelType The new level of the channel after flipping.
- *
- * @implements Dio_FlipChannel_Activity
+ * @see Dio.h (SWS_Dio_00113)
  */
-FUNC(Dio_LevelType, DIO_CODE) Dio_FlipChannel(Dio_ChannelType ChannelId)
+FUNC(Dio_LevelType, DIO_CODE) Dio_FlipChannel(VAR(Dio_ChannelType, AUTOMATIC) ChannelId)
 {
-    VAR(Dio_LevelType, AUTOMATIC) CurrentLevel;
-    VAR(Dio_LevelType, AUTOMATIC) NewLevel = STD_LOW; /* Default to STD_LOW */
+    VAR(Dio_LevelType, AUTOMATIC) eCurrentLevel;
+    VAR(Dio_LevelType, AUTOMATIC) eNewLevel = STD_LOW; /* Default return for error cases */
 
 #if (DIO_DEV_ERROR_DETECT == STD_ON)
-    if (FALSE == Dio_IsInitialized)
+    if (Dio_bIsInitialized == FALSE)
     {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_FLIPCHANNEL_ID, DIO_E_UNINIT);
-        return STD_LOW; /* Return a default value */
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_FLIP_CHANNEL_API_ID, DIO_E_UNINIT);
+        /* eNewLevel remains STD_LOW */
     }
-    if (ChannelId >= (uint8)96)
+    else if (ChannelId > DIO_MAX_CHANNEL_ID)
     {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_FLIPCHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
-        return STD_LOW; /* Return a default value */
-    }
-#endif
-
-    /* Read current level */
-    CurrentLevel = Dio_ReadChannel(ChannelId); /* Dio_ReadChannel already performs checks if DET is on */
-
-    /* Determine new level and write it */
-    if (CurrentLevel == STD_HIGH)
-    {
-        NewLevel = STD_LOW;
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_FLIP_CHANNEL_API_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
+        /* eNewLevel remains STD_LOW */
     }
     else
-    {
-        NewLevel = STD_HIGH;
-    }
-    Dio_WriteChannel(ChannelId, NewLevel); /* Dio_WriteChannel already performs checks if DET is on */
-
-    return NewLevel;
-}
-#endif /* (DIO_FLIP_CHANNEL_API == STD_ON) */
-
-
-/* TODO: Implement Dio_ReadChannelGroup, Dio_WriteChannelGroup, Dio_MaskedWritePort */
-/* These are more complex and require careful handling of masks and offsets. */
-
-/**
- * @brief Reads the level of a specified DIO channel group.
- * @param[in] ChannelGroupIdPtr Pointer to the channel group definition.
- * @return Dio_PortLevelType The levels of the channels in the group.
- */
-FUNC(Dio_PortLevelType, DIO_CODE) Dio_ReadChannelGroup(P2CONST(Dio_ChannelGroupType, AUTOMATIC, DIO_APPL_CONST) ChannelGroupIdPtr)
-{
-    VAR(Dio_PortLevelType, AUTOMATIC) GroupLevel = 0U;
-    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) GpioPortAddr;
-
-#if (DIO_DEV_ERROR_DETECT == STD_ON)
-    if (FALSE == Dio_IsInitialized)
-    {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READCHANNELGROUP_ID, DIO_E_UNINIT);
-        return 0U;
-    }
-    if (NULL_PTR == ChannelGroupIdPtr)
-    {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READCHANNELGROUP_ID, DIO_E_PARAM_POINTER);
-        return 0U;
-    }
-    if (ChannelGroupIdPtr->port >= (uint8)6) /* Basic check for port ID */
-    {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READCHANNELGROUP_ID, DIO_E_PARAM_INVALID_GROUP_ID);
-        return 0U;
-    }
 #endif
-
-    GpioPortAddr = Dio_GetPortBaseAddress(ChannelGroupIdPtr->port);
-
-    if (NULL_PTR != GpioPortAddr)
     {
-        GroupLevel = (Dio_PortLevelType)((GpioPortAddr->IDR & ChannelGroupIdPtr->mask) >> ChannelGroupIdPtr->offset);
+        eCurrentLevel = Dio_ReadChannel(ChannelId); /* This call includes its own DET checks */
+
+        /* Determine new level based on current level */
+        if (eCurrentLevel == STD_LOW)
+        {
+            eNewLevel = STD_HIGH;
+        }
+        else /* Current level is STD_HIGH (or invalid read returned STD_LOW, leading to HIGH flip) */
+        {
+            eNewLevel = STD_LOW;
+        }
+        Dio_WriteChannel(ChannelId, eNewLevel); /* This call includes its own DET checks */
     }
-    return GroupLevel;
+    return eNewLevel;
 }
+#endif /* DIO_FLIP_CHANNEL_API */
 
 
 /**
- * @brief Writes the specified levels to a DIO channel group.
- * @param[in] ChannelGroupIdPtr Pointer to the channel group definition.
- * @param[in] Level The levels to write to the group.
+ * @see Dio.h (SWS_Dio_00050)
  */
-FUNC(void, DIO_CODE) Dio_WriteChannelGroup(P2CONST(Dio_ChannelGroupType, AUTOMATIC, DIO_APPL_CONST) ChannelGroupIdPtr, Dio_PortLevelType Level)
+FUNC(Dio_PortLevelType, DIO_CODE) Dio_ReadPort(VAR(Dio_PortType, AUTOMATIC) PortId)
 {
-    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) GpioPortAddr;
-    VAR(uint32, AUTOMATIC) PortValue;
+    VAR(Dio_PortLevelType, AUTOMATIC) u16PortLevel = 0U;
+    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) pxPortBaseAddr;
 
 #if (DIO_DEV_ERROR_DETECT == STD_ON)
-    if (FALSE == Dio_IsInitialized)
+    if (Dio_bIsInitialized == FALSE)
     {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITECHANNELGROUP_ID, DIO_E_UNINIT);
-        return;
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READ_PORT_API_ID, DIO_E_UNINIT);
     }
-    if (NULL_PTR == ChannelGroupIdPtr)
+    else if (PortId > DIO_MAX_PORT_ID)
     {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITECHANNELGROUP_ID, DIO_E_PARAM_POINTER);
-        return;
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READ_PORT_API_ID, DIO_E_PARAM_INVALID_PORT_ID);
     }
-    if (ChannelGroupIdPtr->port >= (uint8)6)
-    {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITECHANNELGROUP_ID, DIO_E_PARAM_INVALID_GROUP_ID);
-        return;
-    }
+    else
 #endif
-
-    GpioPortAddr = Dio_GetPortBaseAddress(ChannelGroupIdPtr->port);
-
-    if (NULL_PTR != GpioPortAddr)
     {
-        PortValue = GpioPortAddr->ODR; /* Read current ODR */
-        PortValue &= ~( (uint32)ChannelGroupIdPtr->mask ); /* Clear bits in mask */
-        PortValue |= ( ((uint32)Level << ChannelGroupIdPtr->offset) & (uint32)ChannelGroupIdPtr->mask ); /* Set new values */
-        GpioPortAddr->ODR = PortValue;
+        pxPortBaseAddr = Dio_Internal_GetPortBaseAddr(PortId);
+        if (NULL_PTR != pxPortBaseAddr)
+        {
+            u16PortLevel = (Dio_PortLevelType)(pxPortBaseAddr->IDR & 0xFFFFU);
+        }
+    }
+    return u16PortLevel;
+}
+
+
+/**
+ * @see Dio.h (SWS_Dio_00057)
+ */
+FUNC(void, DIO_CODE) Dio_WritePort(VAR(Dio_PortType, AUTOMATIC) PortId, VAR(Dio_PortLevelType, AUTOMATIC) Level)
+{
+    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) pxPortBaseAddr;
+
+#if (DIO_DEV_ERROR_DETECT == STD_ON)
+    if (Dio_bIsInitialized == FALSE)
+    {
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITE_PORT_API_ID, DIO_E_UNINIT);
+    }
+    else if (PortId > DIO_MAX_PORT_ID)
+    {
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITE_PORT_API_ID, DIO_E_PARAM_INVALID_PORT_ID);
+    }
+    else
+#endif
+    {
+        pxPortBaseAddr = Dio_Internal_GetPortBaseAddr(PortId);
+        if (NULL_PTR != pxPortBaseAddr)
+        {
+            pxPortBaseAddr->ODR = (uint32)Level; /* ODR is 32-bit, but only lower 16 bits are used for GPIO pins */
+        }
     }
 }
 
 
 /**
- * @brief Writes a masked value to a port.
- * @param[in] PortId The ID of the DIO port.
- * @param[in] Level The value to write to the port.
- * @param[in] Mask The mask to apply to the port write.
+ * @see Dio.h (SWS_Dio_00052)
  */
-FUNC(void, DIO_CODE) Dio_MaskedWritePort(Dio_PortType PortId, Dio_PortLevelType Level, Dio_PortLevelType Mask)
+FUNC(Dio_PortLevelType, DIO_CODE) Dio_ReadChannelGroup(
+    P2CONST(Dio_ChannelGroupType, AUTOMATIC, DIO_APPL_CONST) ChannelGroupIdPtr
+)
 {
-    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) GpioPortAddr;
-    VAR(uint32, AUTOMATIC) PortValue;
+    VAR(Dio_PortLevelType, AUTOMATIC) u16GroupLevel = 0U;
+    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) pxPortBaseAddr;
 
 #if (DIO_DEV_ERROR_DETECT == STD_ON)
-    if (FALSE == Dio_IsInitialized)
+    if (Dio_bIsInitialized == FALSE)
     {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_MASKEDWRITEPORT_ID, DIO_E_UNINIT);
-        return;
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READ_CHANNEL_GROUP_API_ID, DIO_E_UNINIT);
     }
-    if (PortId >= (uint8)6)
+    else if (NULL_PTR == ChannelGroupIdPtr)
     {
-        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_MASKEDWRITEPORT_ID, DIO_E_PARAM_INVALID_PORT_ID);
-        return;
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READ_CHANNEL_GROUP_API_ID, DIO_E_PARAM_POINTER);
     }
+    else if (ChannelGroupIdPtr->PortIndex > DIO_MAX_PORT_ID)
+    {
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_READ_CHANNEL_GROUP_API_ID, DIO_E_PARAM_INVALID_GROUP_ID);
+    }
+    /* Additional checks for offset and mask could be added here if necessary */
+    else
 #endif
-
-    GpioPortAddr = Dio_GetPortBaseAddress(PortId);
-
-    if (NULL_PTR != GpioPortAddr)
     {
-        PortValue = GpioPortAddr->ODR;       /* Read current ODR */
-        PortValue &= ~((uint32_t)Mask);      /* Clear bits specified by mask */
-        PortValue |= ((uint32_t)Level & (uint32_t)Mask); /* Set bits specified by Level and Mask */
-        GpioPortAddr->ODR = PortValue;
+        pxPortBaseAddr = Dio_Internal_GetPortBaseAddr(ChannelGroupIdPtr->PortIndex);
+        if (NULL_PTR != pxPortBaseAddr)
+        {
+            u16GroupLevel = (Dio_PortLevelType)((pxPortBaseAddr->IDR & ChannelGroupIdPtr->Mask) >> ChannelGroupIdPtr->Offset);
+        }
+    }
+    return u16GroupLevel;
+}
+
+/**
+ * @see Dio.h (SWS_Dio_00058)
+ */
+FUNC(void, DIO_CODE) Dio_WriteChannelGroup(
+    P2CONST(Dio_ChannelGroupType, AUTOMATIC, DIO_APPL_CONST) ChannelGroupIdPtr,
+    VAR(Dio_PortLevelType, AUTOMATIC) Level
+)
+{
+    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) pxPortBaseAddr;
+    VAR(uint32, AUTOMATIC) u32TempOdr;
+
+#if (DIO_DEV_ERROR_DETECT == STD_ON)
+    if (Dio_bIsInitialized == FALSE)
+    {
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITE_CHANNEL_GROUP_API_ID, DIO_E_UNINIT);
+    }
+    else if (NULL_PTR == ChannelGroupIdPtr)
+    {
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITE_CHANNEL_GROUP_API_ID, DIO_E_PARAM_POINTER);
+    }
+    else if (ChannelGroupIdPtr->PortIndex > DIO_MAX_PORT_ID)
+    {
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_WRITE_CHANNEL_GROUP_API_ID, DIO_E_PARAM_INVALID_GROUP_ID);
+    }
+    /* Additional checks for offset, mask, and Level could be added */
+    else
+#endif
+    {
+        pxPortBaseAddr = Dio_Internal_GetPortBaseAddr(ChannelGroupIdPtr->PortIndex);
+        if (NULL_PTR != pxPortBaseAddr)
+        {
+            u32TempOdr = pxPortBaseAddr->ODR;                                                           /* Read current ODR */
+            u32TempOdr &= ~((uint32)ChannelGroupIdPtr->Mask);                                           /* Clear bits defined by mask */
+            u32TempOdr |= (((uint32)Level << ChannelGroupIdPtr->Offset) & (uint32)ChannelGroupIdPtr->Mask); /* Apply new level for masked bits */
+            pxPortBaseAddr->ODR = u32TempOdr;
+        }
     }
 }
+
+
+#if (DIO_MASKED_WRITE_PORT_API == STD_ON)
+/**
+ * @see Dio.h (SWS_Dio_00120)
+ */
+FUNC(void, DIO_CODE) Dio_MaskedWritePort(
+    VAR(Dio_PortType, AUTOMATIC) PortId,
+    VAR(Dio_PortLevelType, AUTOMATIC) Level,
+    VAR(Dio_PortLevelType, AUTOMATIC) Mask
+)
+{
+    P2VAR(GPIO_TypeDef, AUTOMATIC, DIO_APPL_DATA) pxPortBaseAddr;
+    VAR(uint32, AUTOMATIC) u32CurrentOdr;
+
+#if (DIO_DEV_ERROR_DETECT == STD_ON)
+    if (Dio_bIsInitialized == FALSE)
+    {
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_MASKED_WRITE_PORT_API_ID, DIO_E_UNINIT);
+    }
+    else if (PortId > DIO_MAX_PORT_ID)
+    {
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_MASKED_WRITE_PORT_API_ID, DIO_E_PARAM_INVALID_PORT_ID);
+    }
+    else
+#endif
+    {
+        pxPortBaseAddr = Dio_Internal_GetPortBaseAddr(PortId);
+        if (NULL_PTR != pxPortBaseAddr)
+        {
+            u32CurrentOdr = pxPortBaseAddr->ODR;
+            u32CurrentOdr &= ~((uint32)Mask);                       /* Clear bits specified by Mask */
+            u32CurrentOdr |= ((uint32)Level & (uint32)Mask);       /* Set new values for masked bits */
+            pxPortBaseAddr->ODR = u32CurrentOdr;
+        }
+    }
+}
+#endif /* DIO_MASKED_WRITE_PORT_API */
+
+
+#if (DIO_VERSION_INFO_API == STD_ON)
+/**
+ * @see Dio.h (SWS_Dio_00060)
+ */
+FUNC(void, DIO_CODE) Dio_GetVersionInfo(
+    P2VAR(Std_VersionInfoType, AUTOMATIC, DIO_APPL_DATA) VersionInfoPtr
+)
+{
+#if (DIO_DEV_ERROR_DETECT == STD_ON)
+    if (NULL_PTR == VersionInfoPtr)
+    {
+        Det_ReportError(DIO_MODULE_ID, DIO_INSTANCE_ID, DIO_GET_VERSION_INFO_API_ID, DIO_E_PARAM_POINTER);
+    }
+    else
+#endif /* DIO_DEV_ERROR_DETECT == STD_ON */
+    {
+        VersionInfoPtr->vendorID         = DIO_VENDOR_ID;
+        VersionInfoPtr->moduleID         = DIO_MODULE_ID;
+        VersionInfoPtr->sw_major_version = DIO_SW_MAJOR_VERSION;
+        VersionInfoPtr->sw_minor_version = DIO_SW_MINOR_VERSION;
+        VersionInfoPtr->sw_patch_version = DIO_SW_PATCH_VERSION;
+    }
+}
+#endif /* DIO_VERSION_INFO_API */
+
+#define DIO_STOP_SEC_CODE
+/* #include "MemMap.h" */ /* Or Dio_MemMap.h */

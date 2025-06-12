@@ -4,112 +4,91 @@
 /*==================================================================================================
 *                                        INCLUDE FILES
 ==================================================================================================*/
-#include "Std_Types.h" /* For STD_ON/STD_OFF definitions. Std_Types.h includes Compiler.h and Platform_Types.h */
+#include "Std_Types.h"      /* For STD_ON, STD_OFF definitions */
+/* For Gpt_ChannelType - this is uint8. Gpt.h (where it's typedef'd) includes Gpt_Cfg.h,
+   so Gpt_Cfg.h cannot include Gpt.h directly. Using (uint8) cast for channel ID macros is safe.
+*/
 
 /*==================================================================================================
-*                                       PRE-COMPILE OPTIONS
+*                                       DEFINES AND MACROS
 ==================================================================================================*/
 
 /**
- * @brief Switch to enable/disable development error detection for the GPT driver.
- * @details If STD_ON, development errors are reported to DET.
- * @type {STD_ON, STD_OFF}
+ * @brief Instance ID for the GPT module.
+ * @details Typically 0 for non-reentrant modules.
+ */
+#define GPT_INSTANCE_ID                       (0U)
+
+
+/**
+ * @brief Switch to enable or disable development error detection for the GPT module.
  */
 #define GPT_DEV_ERROR_DETECT                  STD_ON
 
 /**
- * @brief Switch to enable/disable the Gpt_GetVersionInfo API.
- * @type {STD_ON, STD_OFF}
+ * @brief Switch to enable or disable the Gpt_GetVersionInfo API.
  */
 #define GPT_VERSION_INFO_API                  STD_ON
 
 /**
- * @brief Switch to enable/disable the Gpt_DeInit API.
- * @type {STD_ON, STD_OFF}
+ * @brief Switch to enable or disable the Gpt_DeInit API.
  */
 #define GPT_DEINIT_API                        STD_ON
 
 /**
- * @brief Switch to enable/disable the Gpt_GetTimeElapsed API.
- * @type {STD_ON, STD_OFF}
+ * @brief Switch to enable or disable the Gpt_GetTimeElapsed API.
  */
 #define GPT_TIME_ELAPSED_API                  STD_ON
 
 /**
- * @brief Switch to enable/disable the Gpt_GetTimeRemaining API.
- * @type {STD_ON, STD_OFF}
+ * @brief Switch to enable or disable the Gpt_GetTimeRemaining API.
  */
 #define GPT_TIME_REMAINING_API                STD_ON
 
 /**
- * @brief Switch to enable/disable Gpt_EnableNotification and Gpt_DisableNotification APIs.
- * @type {STD_ON, STD_OFF}
+ * @brief Switch to enable or disable the Gpt_EnableNotification and Gpt_DisableNotification APIs.
  */
 #define GPT_ENABLE_DISABLE_NOTIFICATION_API   STD_ON
 
 /**
- * @brief Switch to enable/disable GPT wakeup functionality APIs.
- * @details Currently not supported in this basic implementation.
- * @type {STD_ON, STD_OFF}
+ * @brief Switch to enable or disable wakeup functionality related APIs.
+ * @details Currently set to STD_OFF as this feature is not implemented in the basic Gpt driver.
  */
 #define GPT_WAKEUP_FUNCTIONALITY_API          STD_OFF
 
 /**
- * @brief Switch to enable/disable reporting of wakeup source by GPT.
- * @details Currently not supported. Requires GPT_WAKEUP_FUNCTIONALITY_API to be STD_ON.
- * @type {STD_ON, STD_OFF}
+ * @brief Switch to enable or disable reporting of wakeup source by Gpt.
+ * @details Currently set to STD_OFF. Requires GPT_WAKEUP_FUNCTIONALITY_API to be STD_ON.
  */
 #define GPT_REPORT_WAKEUP_SOURCE              STD_OFF
 
 
-/*==================================================================================================
-*                                     CHANNEL CONFIGURATION
-==================================================================================================*/
-
 /**
- * @brief Defines the number of GPT channels configured for use.
- * @details This value determines the size of channel-related arrays in the
- *          post-build configuration (Gpt_PBcfg.c).
+ * @brief Defines the number of GPT channels configured for this driver instance.
+ * @details This value must match the number of channel configurations provided in Gpt_PBcfg.c.
+ *          It is used for sizing internal arrays and loop bounds.
  */
-#define GPT_CONFIGURED_CHANNELS               (2U) /* Example: 2 logical GPT channels */
+#define GPT_CONFIGURED_CHANNELS               (2U)  /* Example: Configuring 2 GPT channels */
 
-
-/**
- * @brief Symbolic names for the configured GPT channels.
- * @details These names are used as input to GPT API functions like Gpt_StartTimer, Gpt_StopTimer, etc.
- *          They serve as indices or identifiers for the logical channels defined in the
- *          post-build configuration (Gpt_PBcfg.c).
- *          The type Gpt_ChannelType is defined in Gpt.h (typically uint8).
- */
-#define GPT_CHANNEL_0     ((uint8)0)  /* Logical Channel 0 (e.g., could be mapped to TIM2) */
-#define GPT_CHANNEL_1     ((uint8)1)  /* Logical Channel 1 (e.g., could be mapped to TIM3) */
-/*
- * If GPT_CONFIGURED_CHANNELS is increased, add more symbolic names here:
- * #define GPT_CHANNEL_2     ((uint8)2)
- * ...
- */
 
 /*
- * Example of more descriptive symbolic names (optional, can be defined by user/integrator).
- * These would typically map to the generic ones above or be used directly if preferred.
- * The mapping to actual hardware timers (like TIM2, TIM3) is done in the
- * post-build configuration (Gpt_PBcfg.c).
- *
- * #define GptConf_GptChannel_TIM2_CH1   GPT_CHANNEL_0
- * #define GptConf_GptChannel_TIM3_CH1   GPT_CHANNEL_1
+ * Symbolic names for GPT Channels
+ * These macros define unique identifiers for each logical GPT channel.
+ * The values should be of type Gpt_ChannelType (typically uint8) and correspond
+ * to the indices of the channel configurations in the Gpt_PBcfg.c array.
  */
+#define GPT_CHANNEL_0                         ((uint8)0U)  /**< @brief Symbolic name for logical GPT Channel 0. */
+#define GPT_CHANNEL_1                         ((uint8)1U)  /**< @brief Symbolic name for logical GPT Channel 1. */
+/* Add more symbolic names if GPT_CONFIGURED_CHANNELS is increased, e.g.: */
+/* #define GPT_CHANNEL_2                      ((uint8)2U) */
 
 
-/*==================================================================================================
-*                                      OTHER CONFIGURATIONS
-==================================================================================================*/
-
-/*
- * Example: Pre-compile definition for a fixed prescaler or clock source if not
- * handled entirely by post-build configuration or by a clock module.
- * This is generally not recommended for flexibility if these parameters can vary.
- */
-// #define GPT_DEFAULT_PRESCALER_VALUE         (71U) /* For a 72MHz clock to get 1us tick, Prescaler = (72MHz / 1MHz) - 1 = 71 */
+/* Example of more descriptive names (optional, if preferred over generic GPT_CHANNEL_x)
+   These would still map to the 0-indexed logical channel IDs.
+   The actual hardware timer (e.g., TIM2) mapping is done in Gpt_PBcfg.c.
+*/
+// #define GptConf_GptChannel_LOGICAL_TIMER_A   GPT_CHANNEL_0
+// #define GptConf_GptChannel_LOGICAL_TIMER_B   GPT_CHANNEL_1
 
 
 #endif /* GPT_CFG_H */
