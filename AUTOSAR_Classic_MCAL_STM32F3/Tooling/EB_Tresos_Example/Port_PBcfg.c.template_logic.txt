@@ -1,0 +1,99 @@
+## Code Generation Template Logic for Port_PBcfg.c
+
+This document outlines the logic that a code generation template (e.g., for EB Tresos)
+would use to generate the `Port_PBcfg.c` file from parameters defined in `Port.xdm`.
+This file contains the actual definitions of post-build configuration data.
+
+**File Header:**
+- Generate standard file header comments (project info, AUTOSAR versions, etc.).
+
+**Includes:**
+- Generate `#include "Port_PBcfg.h"` (which includes Std_Types.h, Compiler.h, and fundamental Port types).
+- Generate `#include "Port_Cfg.h"` (for symbolic Pin IDs like PORT_PIN_PA0).
+
+**Version Checks (Optional but Recommended):**
+- Generate preprocessor checks to ensure consistency between the SW and AR versions of `Port_PBcfg.c` and `Port_PBcfg.h`.
+  Example:
+  ```c
+  #if ((PORT_PBCFG_SW_MAJOR_VERSION != UserDefinedMajor) || \
+       (PORT_PBCFG_SW_MINOR_VERSION != UserDefinedMinor) || \
+       (PORT_PBCFG_SW_PATCH_VERSION != UserDefinedPatch))
+    #error "Software Version Numbers of Port_PBcfg.c and Port_PBcfg.h are different"
+  #endif
+  ```
+
+**Post-Build Configuration Structures Definition:**
+
+1.  **`Port_axPinConfigurations[]` Array Generation:**
+    - The template will iterate through each `<ECUC-CONTAINER-VALUE>` with `<DEFINITION-REF DEST=".../PortPin">` found within the `/PortContainers/PortPin` path in the XDM file.
+    - For each configured pin, it will generate an element in the `Port_axPinConfigurations` array.
+    - The array will be defined as `STATIC CONST(Port_PinConfigType, CONFIG_CONST) Port_axPinConfigurations[] = { ... };`
+
+    - **Inside the loop for each pin configuration from XDM:**
+      - Read the parameter values for the current pin (e.g., PA5, PC13 from the XDM example).
+      - Generate a C structure initializer using designated initializers:
+        ```c
+        { /* Configuration for {XDM Pin ShortName, e.g., PortPin_PA5} */
+            .PinId                  = {XDM PortPinId value, e.g., PORT_PIN_PA5 (this is a symbolic name from Port_Cfg.h)},
+            .PinMode                = {XDM PortPinMode value, e.g., PORT_PIN_MODE_GPIO_OUT_PUSHPULL},
+            .PinDirection           = {XDM PortPinDirection value, e.g., PORT_PIN_OUT},
+            .PinPullCfg             = {XDM PortPinPullConfiguration value, e.g., PORT_PULL_NONE},
+            .PinOutputSpeedCfg      = {XDM PortPinOutputSpeed value, e.g., PORT_OSPEED_LOW},
+            .PinInitialLevel        = {XDM PortPinInitialLevel value, e.g., PORT_PIN_LEVEL_LOW},
+            .PinAlternateFunction   = {XDM PortPinAlternateFunction value}U, // Ensure U suffix
+            .PinDirectionChangeable = {XDM PortPinDirectionChangeable value (true -> TRUE, false -> FALSE)},
+            .PinModeChangeable      = {XDM PortPinModeChangeable value (true -> TRUE, false -> FALSE)}
+        },
+        ```
+      - The XDM `PortPinId` uses a `<VALUE-REF>` to symbolic names defined in `/PortPins/PortPinSymbolicName`. The generator needs to ensure these symbolic names (like `PORT_PIN_PA5`) are correctly used as the value for `.PinId`. These symbolic names themselves are defined in `Port_Cfg.h` (either hand-coded or generated).
+
+    - Example of generated array for two pins:
+      ```c
+      STATIC CONST(Port_PinConfigType, CONFIG_CONST) Port_axPinConfigurations[] =
+      {
+          { /* PortPin_PA5 */
+              .PinId                  = PORT_PIN_PA5,
+              .PinMode                = PORT_PIN_MODE_GPIO_OUT_PUSHPULL,
+              /* ... other members from XDM ... */
+              .PinModeChangeable      = TRUE
+          },
+          { /* PortPin_PC13 */
+              .PinId                  = PORT_PIN_PC13,
+              .PinMode                = PORT_PIN_MODE_GPIO_IN_PULLUP,
+              /* ... other members from XDM ... */
+              .PinModeChangeable      = FALSE
+          }
+          /* ... more pins ... */
+      };
+      ```
+
+2.  **`PortConfig` Structure Instance Generation:**
+    - After generating the `Port_axPinConfigurations` array.
+    - Generate the main `PortConfig` structure instance:
+      ```c
+      CONST(Port_ConfigType, CONFIG_CONST) PortConfig =
+      {
+          .PinConfig      = Port_axPinConfigurations,
+          .NumberOfPins   = (Port_PinType)(sizeof(Port_axPinConfigurations) / sizeof(Port_PinConfigType))
+      };
+      ```
+    - `Port_PinType` should be used for `.NumberOfPins` as defined in `Port_PBcfg.h`.
+    - The `sizeof` calculation correctly determines the number of configured pins.
+
+**File Footer:**
+- No specific footer needed beyond standard comments if any.
+
+**Summary of XDM Parameters Used for Port_PBcfg.c:**
+- Iterates `/PortContainers/PortPin` list.
+- For each `PortPin`:
+  - `PortPinId` (reference to symbolic name)
+  - `PortPinMode`
+  - `PortPinDirection`
+  - `PortPinPullConfiguration`
+  - `PortPinOutputSpeed`
+  - `PortPinInitialLevel`
+  - `PortPinAlternateFunction`
+  - `PortPinDirectionChangeable`
+  - `PortPinModeChangeable`
+
+This logic ensures that the C structures in `Port_PBcfg.c` directly reflect the configurations made by the user in the EB Tresos GUI (which are stored in the XDM).

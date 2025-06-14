@@ -1,0 +1,101 @@
+## Code Generation Template Logic for Port_Cfg.h
+
+This document outlines the logic that a code generation template (e.g., for EB Tresos)
+would use to generate the `Port_Cfg.h` file from parameters defined in `Port.xdm`.
+
+**File Header:**
+- Generate standard file header comments (project info, AUTOSAR versions, etc.).
+- Generate the `#ifndef PORT_CFG_H` and `#define PORT_CFG_H` guards.
+
+**Includes:**
+- Generate `#include "Std_Types.h"`.
+
+**Module Instance ID:**
+- Read the `PortInstanceId` parameter from `/PortGeneral` container in XDM.
+- Generate: `#define PORT_INSTANCE_ID (ValueFromXDMU)`
+  Example: `#define PORT_INSTANCE_ID (0U)`
+
+**API Switches (from PortGeneral container):**
+- For each boolean API switch parameter in XDM (e.g., `PortDevErrorDetect`, `PortVersionInfoApi`, `PortSetPinDirectionApi`, `PortSetPinModeApi`):
+  - If XDM value is `true`, generate `#define PARAMETER_NAME STD_ON`.
+  - If XDM value is `false`, generate `#define PARAMETER_NAME STD_OFF`.
+  Example for `PortDevErrorDetect`:
+  ```c
+  // Read /PortGeneral/PortDevErrorDetect from XDM
+  // if (PortDevErrorDetect == true)
+  #define PORT_DEV_ERROR_DETECT STD_ON
+  // else
+  // #define PORT_DEV_ERROR_DETECT STD_OFF
+  // endif
+  ```
+  (Similar logic for `PORT_VERSION_INFO_API`, `PORT_SET_PIN_DIRECTION_API`, `PORT_SET_PIN_MODE_API`).
+
+**Pin Changeability Global Switches (from PortGeneral or a dedicated container):**
+- These might be directly configurable or derived. Assuming direct configuration for now.
+- Parameters: `PortPinDirectionChangeableGlobal`, `PortPinModeChangeableGlobal` (conceptual XDM params).
+- Generate:
+  ```c
+  // if (PortPinDirectionChangeableGlobal == true)
+  #define PORT_PIN_DIRECTION_CHANGEABLE STD_ON
+  // else
+  // #define PORT_PIN_DIRECTION_CHANGEABLE STD_OFF
+  // endif
+
+  // if (PortPinModeChangeableGlobal == true)
+  #define PORT_PIN_MODE_CHANGEABLE STD_ON
+  // else
+  // #define PORT_PIN_MODE_CHANGEABLE STD_OFF
+  // endif
+  ```
+  (Note: Our current `Port_Cfg.h` has these. XDM should reflect them in `PortGeneral`).
+
+**Pin Count and Symbolic Names (from PortPins and PortContainers/PortPin in XDM):**
+- **`PORT_MAX_PIN_ID` and `PORT_NUMBER_OF_PINS`**:
+  - These are typically derived from the maximum symbolic pin ID configured or defined.
+  - The XDM section `/Port/PortPins/PortPinSymbolicName` lists all *available* symbolic names (e.g., PORT_PIN_PA0 to PORT_PIN_PF15).
+  - The generator would iterate through these defined symbolic names.
+  - The highest numerical value assigned to a `PortPinId` (e.g., from `Port_Cfg.c` or a mapping table within the generator) would determine `PORT_MAX_PIN_ID`.
+  - `PORT_NUMBER_OF_PINS` would be `PORT_MAX_PIN_ID + 1U`.
+  - Example generated code:
+    ```c
+    #define PORT_MAX_PIN_ID                       (95U) /* Assuming PF15 is highest, value derived by generator */
+    #define PORT_NUMBER_OF_PINS                   (PORT_MAX_PIN_ID + 1U)
+    ```
+
+- **Symbolic Pin Name Macros (`PORT_PIN_PxN`)**:
+  - These are fundamental definitions that map a symbolic name to a `Port_PinType` numerical ID.
+  - In many AUTOSAR systems, these are standardized for a given MCU package/series and might be part of a base BSW MD, or generated.
+  - If generated, the template would iterate through a list of all possible pins for the target MCU (e.g., from an internal database or a specific XDM container listing all hardware pins).
+  - For each pin, it would generate: `#define PORT_PIN_PxN ((uint8)NumericalIDU)`
+  - The `NumericalIDU` would be assigned sequentially (e.g., PA0=0, PA1=1, ..., PB0=16, ...).
+  - Example generated code for a few pins:
+    ```c
+    /* PORT A: Pins 0 - 15 */
+    #define PORT_PIN_PA0                          ((uint8)0U)
+    #define PORT_PIN_PA1                          ((uint8)1U)
+    // ...
+    #define PORT_PIN_PA15                         ((uint8)15U)
+
+    /* PORT B: Pins 16 - 31 */
+    #define PORT_PIN_PB0                          ((uint8)16U)
+    // ...
+    #define PORT_PIN_PB15                         ((uint8)31U)
+    // ... and so on for all ports/pins defined for the target.
+    ```
+  - The list of literals in `/Port/PortPins/PortPinSymbolicName` in the XDM provides the set of valid symbolic names the user can assign to configured pins in the `PortContainers/PortPin/PortPinId` reference. The actual `#define PORT_PIN_PxN ((uint8)ID)` might come from a different generation step or be fixed for a platform.
+  - For our manually written `Port_Cfg.h`, we defined these directly. A generator would do the same based on MCU data.
+
+**File Footer:**
+- Generate `#endif /* PORT_CFG_H */`.
+
+**Summary of XDM Parameters Used for Port_Cfg.h:**
+- From `/PortGeneral`:
+  - `PortDevErrorDetect`
+  - `PortVersionInfoApi`
+  - `PortSetPinDirectionApi`
+  - `PortSetPinModeApi`
+  - `PortInstanceId`
+  - (Conceptual) `PortPinDirectionChangeableGlobal`
+  - (Conceptual) `PortPinModeChangeableGlobal`
+- From MCU definition data (implicit or explicit in XDM, determines available pins and their numerical IDs):
+  - List of all hardware pins (e.g., PA0 to PF15).

@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AUTOSAR xmlns="http://autosar.org/schema/r4.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://autosar.org/schema/r4.0 AUTOSAR_4-3-1.xsd">
+  <AR-PACKAGES>
+    <AR-PACKAGE>
+      <SHORT-NAME>AUTOSAR_Port</SHORT-NAME>
+      <ELEMENTS>
+        <ECUC-MODULE-CONFIGURATION-VALUES>
+          <SHORT-NAME>PortConfig</SHORT-NAME>
+          <DEFINITION-REF DEST="ECUC-MODULE-DEF">/AUTOSAR_Port/Port</DEFINITION-REF>
+          <IMPLEMENTATION-CONFIG-VARIANT>VARIANT-POST-BUILD</IMPLEMENTATION-CONFIG-VARIANT>
+          <CONTAINERS>
+
+            <!-- General Port Module Settings -->
+            <ECUC-CONTAINER-VALUE>
+              <SHORT-NAME>PortGeneral</SHORT-NAME>
+              <DEFINITION-REF DEST="ECUC-PARAM-CONF-CONTAINER-DEF">/AUTOSAR_Port/Port/PortGeneral</DEFINITION-REF>
+              <PARAMETER-VALUES>
+                <ECUC-NUMERICAL-PARAM-VALUE>
+                  <DEFINITION-REF DEST="ECUC-BOOLEAN-PARAM-DEF">/AUTOSAR_Port/Port/PortGeneral/PortDevErrorDetect</DEFINITION-REF>
+                  <VALUE>true</VALUE> <!-- Corresponds to #define PORT_DEV_ERROR_DETECT STD_ON -->
+                </ECUC-NUMERICAL-PARAM-VALUE>
+                <ECUC-NUMERICAL-PARAM-VALUE>
+                  <DEFINITION-REF DEST="ECUC-BOOLEAN-PARAM-DEF">/AUTOSAR_Port/Port/PortGeneral/PortVersionInfoApi</DEFINITION-REF>
+                  <VALUE>true</VALUE> <!-- Corresponds to #define PORT_VERSION_INFO_API STD_ON -->
+                </ECUC-NUMERICAL-PARAM-VALUE>
+                <ECUC-NUMERICAL-PARAM-VALUE>
+                  <DEFINITION-REF DEST="ECUC-BOOLEAN-PARAM-DEF">/AUTOSAR_Port/Port/PortGeneral/PortSetPinDirectionApi</DEFINITION-REF>
+                  <VALUE>true</VALUE> <!-- Corresponds to #define PORT_SET_PIN_DIRECTION_API STD_ON -->
+                </ECUC-NUMERICAL-PARAM-VALUE>
+                <ECUC-NUMERICAL-PARAM-VALUE>
+                  <DEFINITION-REF DEST="ECUC-BOOLEAN-PARAM-DEF">/AUTOSAR_Port/Port/PortGeneral/PortSetPinModeApi</DEFINITION-REF>
+                  <VALUE>true</VALUE> <!-- Corresponds to #define PORT_SET_PIN_MODE_API STD_ON -->
+                </ECUC-NUMERICAL-PARAM-VALUE>
+                <ECUC-NUMERICAL-PARAM-VALUE>
+                  <DEFINITION-REF DEST="ECUC-INTEGER-PARAM-DEF">/AUTOSAR_Port/Port/PortGeneral/PortInstanceId</DEFINITION-REF>
+                  <VALUE>0</VALUE> <!-- Corresponds to #define PORT_INSTANCE_ID (0U) -->
+                </ECUC-NUMERICAL-PARAM-VALUE>
+              </PARAMETER-VALUES>
+            </ECUC-CONTAINER-VALUE>
+
+            <!-- PortPin Configurations Container -->
+            <!-- EB Tresos typically allows creating multiple PortPin containers -->
+            <ECUC-CONTAINER-VALUE>
+              <SHORT-NAME>PortContainers</SHORT-NAME> <!-- A container to hold multiple PortPin sets if needed -->
+              <DEFINITION-REF DEST="ECUC-PARAM-CONF-CONTAINER-DEF">/AUTOSAR_Port/Port/PortContainers</DEFINITION-REF>
+              <SUB-CONTAINERS>
+                <!-- Example PortPin Configuration for PA5 (LED) -->
+                <ECUC-CONTAINER-VALUE>
+                  <SHORT-NAME>PortPin_PA5</SHORT-NAME>
+                  <DEFINITION-REF DEST="ECUC-PARAM-CONF-CONTAINER-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin</DEFINITION-REF>
+                  <PARAMETER-VALUES>
+                    <ECUC-TEXTUAL-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-SYMBOLIC-NAME-REFERENCE-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinId</DEFINITION-REF>
+                      <VALUE-REF DEST="ECUC-SYMBOLIC-NAME-VALUE">/AUTOSAR_Port/Port/PortPins/PORT_PIN_PA5</VALUE-REF>
+                    </ECUC-TEXTUAL-PARAM-VALUE>
+                    <ECUC-ENUMERATION-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-ENUMERATION-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinMode</DEFINITION-REF>
+                      <VALUE>PORT_PIN_MODE_GPIO_OUT_PUSHPULL</VALUE>
+                    </ECUC-ENUMERATION-PARAM-VALUE>
+                    <ECUC-ENUMERATION-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-ENUMERATION-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinDirection</DEFINITION-REF>
+                      <VALUE>PORT_PIN_OUT</VALUE>
+                    </ECUC-ENUMERATION-PARAM-VALUE>
+                    <ECUC-ENUMERATION-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-ENUMERATION-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinPullConfiguration</DEFINITION-REF>
+                      <VALUE>PORT_PULL_NONE</VALUE>
+                    </ECUC-ENUMERATION-PARAM-VALUE>
+                    <ECUC-ENUMERATION-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-ENUMERATION-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinOutputSpeed</DEFINITION-REF>
+                      <VALUE>PORT_OSPEED_LOW</VALUE>
+                    </ECUC-ENUMERATION-PARAM-VALUE>
+                    <ECUC-ENUMERATION-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-ENUMERATION-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinInitialLevel</DEFINITION-REF>
+                      <VALUE>PORT_PIN_LEVEL_LOW</VALUE>
+                    </ECUC-ENUMERATION-PARAM-VALUE>
+                    <ECUC-NUMERICAL-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-INTEGER-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinAlternateFunction</DEFINITION-REF>
+                      <VALUE>0</VALUE> <!-- AF0, typically not relevant for GPIO mode -->
+                    </ECUC-NUMERICAL-PARAM-VALUE>
+                    <ECUC-NUMERICAL-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-BOOLEAN-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinDirectionChangeable</DEFINITION-REF>
+                      <VALUE>true</VALUE>
+                    </ECUC-NUMERICAL-PARAM-VALUE>
+                    <ECUC-NUMERICAL-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-BOOLEAN-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinModeChangeable</DEFINITION-REF>
+                      <VALUE>true</VALUE>
+                    </ECUC-NUMERICAL-PARAM-VALUE>
+                  </PARAMETER-VALUES>
+                </ECUC-CONTAINER-VALUE>
+
+                <!-- Example PortPin Configuration for PC13 (Button) -->
+                <ECUC-CONTAINER-VALUE>
+                  <SHORT-NAME>PortPin_PC13</SHORT-NAME>
+                  <DEFINITION-REF DEST="ECUC-PARAM-CONF-CONTAINER-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin</DEFINITION-REF>
+                  <PARAMETER-VALUES>
+                    <ECUC-TEXTUAL-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-SYMBOLIC-NAME-REFERENCE-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinId</DEFINITION-REF>
+                      <VALUE-REF DEST="ECUC-SYMBOLIC-NAME-VALUE">/AUTOSAR_Port/Port/PortPins/PORT_PIN_PC13</VALUE-REF>
+                    </ECUC-TEXTUAL-PARAM-VALUE>
+                    <ECUC-ENUMERATION-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-ENUMERATION-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinMode</DEFINITION-REF>
+                      <VALUE>PORT_PIN_MODE_GPIO_IN_PULLUP</VALUE>
+                    </ECUC-ENUMERATION-PARAM-VALUE>
+                    <ECUC-ENUMERATION-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-ENUMERATION-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinDirection</DEFINITION-REF>
+                      <VALUE>PORT_PIN_IN</VALUE>
+                    </ECUC-ENUMERATION-PARAM-VALUE>
+                    <ECUC-ENUMERATION-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-ENUMERATION-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinPullConfiguration</DEFINITION-REF>
+                      <VALUE>PORT_PULL_UP</VALUE>
+                    </ECUC-ENUMERATION-PARAM-VALUE>
+                    <!-- Other params like speed, initial level, AF are less relevant for a simple input -->
+                    <ECUC-ENUMERATION-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-ENUMERATION-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinOutputSpeed</DEFINITION-REF>
+                      <VALUE>PORT_OSPEED_LOW</VALUE>
+                    </ECUC-ENUMERATION-PARAM-VALUE>
+                    <ECUC-ENUMERATION-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-ENUMERATION-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinInitialLevel</DEFINITION-REF>
+                      <VALUE>PORT_PIN_LEVEL_HIGH</VALUE> <!-- Due to Pull-up -->
+                    </ECUC-ENUMERATION-PARAM-VALUE>
+                    <ECUC-NUMERICAL-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-INTEGER-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinAlternateFunction</DEFINITION-REF>
+                      <VALUE>0</VALUE>
+                    </ECUC-NUMERICAL-PARAM-VALUE>
+                    <ECUC-NUMERICAL-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-BOOLEAN-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinDirectionChangeable</DEFINITION-REF>
+                      <VALUE>false</VALUE>
+                    </ECUC-NUMERICAL-PARAM-VALUE>
+                    <ECUC-NUMERICAL-PARAM-VALUE>
+                      <DEFINITION-REF DEST="ECUC-BOOLEAN-PARAM-DEF">/AUTOSAR_Port/Port/PortContainers/PortPin/PortPinModeChangeable</DEFINITION-REF>
+                      <VALUE>false</VALUE>
+                    </ECUC-NUMERICAL-PARAM-VALUE>
+                  </PARAMETER-VALUES>
+                </ECUC-CONTAINER-VALUE>
+                <!-- Add other pin configurations here -->
+              </SUB-CONTAINERS>
+            </ECUC-CONTAINER-VALUE>
+          </CONTAINERS>
+        </ECUC-MODULE-CONFIGURATION-VALUES>
+
+        <!-- Module Definition for Port (conceptual) -->
+        <!-- A full BSW MD (Module Definition) file would be more extensive -->
+        <ECUC-MODULE-DEF>
+          <SHORT-NAME>Port</SHORT-NAME>
+          <DESC>
+            <L-2 L="EN">Configuration of the Port Driver.</L-2>
+          </DESC>
+          <ADMIN-DATA>
+            <DOC-REVISIONS>
+              <DOC-REVISION>
+                <REVISION-LABEL>1.0.0</REVISION-LABEL>
+                <ISSUED-BY>AUTOSAR_EXAMPLE</ISSUED-BY>
+                <DATE>2024-01-01</DATE>
+              </DOC-REVISION>
+            </DOC-REVISIONS>
+          </ADMIN-DATA>
+          <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+          <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+          <SUPPORTED-CONFIG-VARIANTS>
+            <SUPPORTED-CONFIG-VARIANT>VARIANT-POST-BUILD</SUPPORTED-CONFIG-VARIANT>
+          </SUPPORTED-CONFIG-VARIANTS>
+          <CONTAINERS>
+            <!-- PortGeneral Container Definition -->
+            <ECUC-PARAM-CONF-CONTAINER-DEF>
+              <SHORT-NAME>PortGeneral</SHORT-NAME>
+              <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+              <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+              <PARAMETERS>
+                <ECUC-BOOLEAN-PARAM-DEF>
+                  <SHORT-NAME>PortDevErrorDetect</SHORT-NAME>
+                  <DESC><L-2 L="EN">Switch for DET usage.</L-2></DESC>
+                  <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                  <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                  <DEFAULT-VALUE>true</DEFAULT-VALUE>
+                </ECUC-BOOLEAN-PARAM-DEF>
+                <ECUC-BOOLEAN-PARAM-DEF>
+                  <SHORT-NAME>PortVersionInfoApi</SHORT-NAME>
+                  <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                  <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                  <DEFAULT-VALUE>true</DEFAULT-VALUE>
+                </ECUC-BOOLEAN-PARAM-DEF>
+                <ECUC-BOOLEAN-PARAM-DEF>
+                  <SHORT-NAME>PortSetPinDirectionApi</SHORT-NAME>
+                  <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                  <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                  <DEFAULT-VALUE>true</DEFAULT-VALUE>
+                </ECUC-BOOLEAN-PARAM-DEF>
+                <ECUC-BOOLEAN-PARAM-DEF>
+                  <SHORT-NAME>PortSetPinModeApi</SHORT-NAME>
+                  <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                  <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                  <DEFAULT-VALUE>true</DEFAULT-VALUE>
+                </ECUC-BOOLEAN-PARAM-DEF>
+                <ECUC-INTEGER-PARAM-DEF>
+                  <SHORT-NAME>PortInstanceId</SHORT-NAME>
+                  <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                  <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                  <DEFAULT-VALUE>0</DEFAULT-VALUE>
+                  <MAX>255</MAX>
+                  <MIN>0</MIN>
+                </ECUC-INTEGER-PARAM-DEF>
+              </PARAMETERS>
+            </ECUC-PARAM-CONF-CONTAINER-DEF>
+
+            <!-- PortContainers Definition (to hold PortPin instances) -->
+            <ECUC-PARAM-CONF-CONTAINER-DEF>
+              <SHORT-NAME>PortContainers</SHORT-NAME>
+              <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+              <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+              <SUB-CONTAINERS>
+                <!-- PortPin Container Definition -->
+                <ECUC-PARAM-CONF-CONTAINER-DEF>
+                  <SHORT-NAME>PortPin</SHORT-NAME>
+                  <DESC><L-2 L="EN">Configuration of an individual port pin.</L-2></DESC>
+                  <LOWER-MULTIPLICITY>0</LOWER-MULTIPLICITY> <!-- 0 if some pins can be unconfigured -->
+                  <UPPER-MULTIPLICITY-INFINITE/> <!-- Can have many pins -->
+                  <PARAMETERS>
+                    <ECUC-SYMBOLIC-NAME-REFERENCE-DEF> <!-- Allows choosing from a list of defined pin symbols -->
+                        <SHORT-NAME>PortPinId</SHORT-NAME>
+                        <DESC><L-2 L="EN">Symbolic name of the port pin (e.g., PORT_PIN_PA5).</L-2></DESC>
+                        <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                        <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                        <DESTINATION-REF DEST="ECUC-ENUMERATION-PARAM-DEF">/AUTOSAR_Port/Port/PortPins/PortPinSymbolicName</DESTINATION-REF>
+                    </ECUC-SYMBOLIC-NAME-REFERENCE-DEF>
+                    <ECUC-ENUMERATION-PARAM-DEF>
+                      <SHORT-NAME>PortPinDirection</SHORT-NAME>
+                      <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                      <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                      <LITERALS>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_IN</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_OUT</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                      </LITERALS>
+                    </ECUC-ENUMERATION-PARAM-DEF>
+                    <ECUC-ENUMERATION-PARAM-DEF>
+                      <SHORT-NAME>PortPinMode</SHORT-NAME>
+                      <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                      <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                      <LITERALS>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_MODE_GPIO_IN_ANALOG</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_MODE_GPIO_IN_FLOATING</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_MODE_GPIO_IN_PULLDOWN</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_MODE_GPIO_IN_PULLUP</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_MODE_GPIO_OUT_PUSHPULL</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_MODE_GPIO_OUT_OPENDRAIN</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_MODE_AF_PUSHPULL</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_MODE_AF_OPENDRAIN</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_MODE_NOT_USED</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                      </LITERALS>
+                    </ECUC-ENUMERATION-PARAM-DEF>
+                    <ECUC-ENUMERATION-PARAM-DEF>
+                      <SHORT-NAME>PortPinInitialLevel</SHORT-NAME>
+                      <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                      <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                      <LITERALS>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_LEVEL_LOW</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_LEVEL_HIGH</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                      </LITERALS>
+                    </ECUC-ENUMERATION-PARAM-DEF>
+                    <ECUC-ENUMERATION-PARAM-DEF>
+                      <SHORT-NAME>PortPinPullConfiguration</SHORT-NAME>
+                      <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                      <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                      <LITERALS>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PULL_NONE</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PULL_UP</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PULL_DOWN</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                      </LITERALS>
+                    </ECUC-ENUMERATION-PARAM-DEF>
+                    <ECUC-ENUMERATION-PARAM-DEF>
+                      <SHORT-NAME>PortPinOutputSpeed</SHORT-NAME>
+                      <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                      <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                      <LITERALS>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_OSPEED_LOW</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_OSPEED_MEDIUM</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_OSPEED_HIGH</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                        <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_OSPEED_VERY_HIGH</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                      </LITERALS>
+                    </ECUC-ENUMERATION-PARAM-DEF>
+                    <ECUC-INTEGER-PARAM-DEF>
+                      <SHORT-NAME>PortPinAlternateFunction</SHORT-NAME>
+                      <DESC><L-2 L="EN">Alternate function selection (0-15 for STM32).</L-2></DESC>
+                      <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                      <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                      <DEFAULT-VALUE>0</DEFAULT-VALUE>
+                      <MAX>15</MAX><MIN>0</MIN>
+                    </ECUC-INTEGER-PARAM-DEF>
+                    <ECUC-BOOLEAN-PARAM-DEF>
+                      <SHORT-NAME>PortPinDirectionChangeable</SHORT-NAME>
+                      <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                      <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                      <DEFAULT-VALUE>false</DEFAULT-VALUE>
+                    </ECUC-BOOLEAN-PARAM-DEF>
+                    <ECUC-BOOLEAN-PARAM-DEF>
+                      <SHORT-NAME>PortPinModeChangeable</SHORT-NAME>
+                      <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                      <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                      <DEFAULT-VALUE>false</DEFAULT-VALUE>
+                    </ECUC-BOOLEAN-PARAM-DEF>
+                  </PARAMETERS>
+                </ECUC-PARAM-CONF-CONTAINER-DEF>
+              </SUB-CONTAINERS>
+            </ECUC-PARAM-CONF-CONTAINER-DEF>
+
+            <!-- Container for defining available PortPin symbolic names -->
+            <ECUC-PARAM-CONF-CONTAINER-DEF>
+                <SHORT-NAME>PortPins</SHORT-NAME>
+                <DESC><L-2 L="EN">Container for symbolic names of all available port pins.</L-2></DESC>
+                <LOWER-MULTIPLICITY>1</LOWER-MULTIPLICITY>
+                <UPPER-MULTIPLICITY>1</UPPER-MULTIPLICITY>
+                <PARAMETERS>
+                    <ECUC-ENUMERATION-PARAM-DEF>
+                        <SHORT-NAME>PortPinSymbolicName</SHORT-NAME> <!-- This defines the type for PortPinId reference -->
+                        <LOWER-MULTIPLICITY>0</LOWER-MULTIPLICITY>
+                        <UPPER-MULTIPLICITY-INFINITE/>
+                         <LITERALS>
+                            <!-- These would be generated or manually listed based on Port_Cfg.h -->
+                            <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_PA0</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                            <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_PA1</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                            <!-- ... all other pins from Port_Cfg.h ... -->
+                            <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_PA5</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                            <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_PC13</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                            <ECUC-ENUMERATION-LITERAL-DEF><SHORT-NAME>PORT_PIN_PF15</SHORT-NAME></ECUC-ENUMERATION-LITERAL-DEF>
+                         </LITERALS>
+                    </ECUC-ENUMERATION-PARAM-DEF>
+                </PARAMETERS>
+            </ECUC-PARAM-CONF-CONTAINER-DEF>
+
+          </CONTAINERS>
+        </ECUC-MODULE-DEF>
+      </ELEMENTS>
+    </AR-PACKAGE>
+  </AR-PACKAGES>
+</AUTOSAR>
