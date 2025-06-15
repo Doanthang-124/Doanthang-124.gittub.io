@@ -4,109 +4,109 @@
 /*==================================================================================================
 *                                        INCLUDE FILES
 ==================================================================================================*/
-#include "Std_Types.h"  /* Standard AUTOSAR Types (includes Platform_Types.h, Compiler.h) */
-#include "Gpt.h"        /* For Gpt_ChannelType, Gpt_ValueType, Gpt_ModeType, Gpt_NotificationFuncPtrType,
-                           and the Gpt_ConfigType structure declaration. Gpt.h includes Gpt_Cfg.h */
+#include "../Common/Include/Std_Types.h" /* For Std_ReturnType, uint8, uint16, boolean, P2CONST, CONST etc. */
+                                         /* Std_Types.h includes Compiler.h */
+/* Do NOT include Gpt.h here as Gpt.h includes this file (for Gpt_ConfigType definition),
+   which would create a circular dependency.
+   Fundamental GPT types needed by Gpt_ChannelConfigType and Gpt_ConfigType are defined below.
+*/
 
 /*==================================================================================================
 *                                           CONSTANTS
 ==================================================================================================*/
 /* Software Version Numbers for this Post-Build configuration header */
-#define GPT_PBCFG_SW_MAJOR_VERSION     1U
-#define GPT_PBCFG_SW_MINOR_VERSION     0U
-#define GPT_PBCFG_SW_PATCH_VERSION     0U
+#define GPT_PBCFG_SW_MAJOR_VERSION       1U
+#define GPT_PBCFG_SW_MINOR_VERSION       0U
+#define GPT_PBCFG_SW_PATCH_VERSION       0U
 
 /* AUTOSAR Version Information for this Post-Build configuration header */
-#define GPT_PBCFG_AR_RELEASE_MAJOR_VERSION    4U
-#define GPT_PBCFG_AR_RELEASE_MINOR_VERSION    3U
-#define GPT_PBCFG_AR_RELEASE_REVISION_VERSION 1U
+#define GPT_PBCFG_AR_RELEASE_MAJOR_VERSION      4U
+#define GPT_PBCFG_AR_RELEASE_MINOR_VERSION      3U
+#define GPT_PBCFG_AR_RELEASE_REVISION_VERSION   1U
 
 /*==================================================================================================
-*                                STRUCTURES AND OTHER TYPEDEFS
+*                                             TYPES
 ==================================================================================================*/
 
+/*
+ * Fundamental GPT Driver Types
+ * These types are defined here to be included by Gpt.h (which needs them for its API)
+ * and Gpt_PBcfg.c (for defining configurations).
+ * This avoids circular dependencies if Gpt.h includes Gpt_PBcfg.h for Gpt_ConfigType.
+ */
+
+/** @brief Numeric ID for a GPT channel. Typically uint8. (AUTOSAR SWS GptChannelId) */
+typedef uint8 Gpt_ChannelType;
+
+/** @brief Type for timer value (target ticks, elapsed ticks). Typically uint16 or uint32. (AUTOSAR SWS GptChannelTickValueType) */
+typedef uint32 Gpt_ValueType; /* Using uint32 for compatibility with 32-bit timers like TIM2 */
+
+/** @brief Type for defining the Gpt channel operational mode. (AUTOSAR SWS GptChannelModeType) */
+typedef enum
+{
+    GPT_MODE_ONESHOT = 0U,   /**< Timer runs once and stops after reaching target time. */
+    GPT_MODE_CONTINUOUS      /**< Timer restarts automatically after reaching target time. */
+} Gpt_ModeType;
+
+/** @brief Type for the function pointer used for channel notifications (callbacks). (AUTOSAR SWS Gpt_NotificationType) */
+typedef void (*Gpt_NotificationFuncPtrType)(void);
+
+
 /**
- * @brief Implementation-specific type to identify the underlying STM32 hardware timer peripheral.
- * @details This enumeration lists the STM32 timers that can be configured as GPT channels.
- *          The actual availability depends on the specific STM32F3 microcontroller package.
+ * @brief Implementation-specific type to identify the STM32 hardware timer peripheral
+ *        used for a GPT channel (e.g., TIM2, TIM3, etc.).
  */
 typedef enum
 {
-    GPT_HW_STM32_TIM2,     /**< STM32 General-purpose timer TIM2 (32-bit or 16-bit) */
-    GPT_HW_STM32_TIM3,     /**< STM32 General-purpose timer TIM3 (16-bit) */
-    GPT_HW_STM32_TIM4,     /**< STM32 General-purpose timer TIM4 (16-bit) */
-    GPT_HW_STM32_TIM5,     /**< STM32 General-purpose timer TIM5 (32-bit or 16-bit, not on all F3) - Example */
-    GPT_HW_STM32_TIM6,     /**< STM32 Basic timer TIM6 (16-bit) */
-    GPT_HW_STM32_TIM7,     /**< STM32 Basic timer TIM7 (16-bit) */
-    /* Add other timers like TIM1, TIM15, TIM16, TIM17 as needed and supported */
-    GPT_HW_CHANNEL_NOT_USED /* Placeholder if a logical channel is not mapped to HW */
-} Gpt_HwChannelType;
+    STM32_TIM2 = 0U, /**< STM32 General-Purpose Timer 2 (32-bit or 16-bit capable) */
+    STM32_TIM3,      /**< STM32 General-Purpose Timer 3 (16-bit) */
+    STM32_TIM4,      /**< STM32 General-Purpose Timer 4 (16-bit) */
+    STM32_TIM6,      /**< STM32 Basic Timer 6 (16-bit) */
+    STM32_TIM7,      /**< STM32 Basic Timer 7 (16-bit) */
+    /* Add other timers as supported by the driver and target MCU, e.g.: */
+    /* STM32_TIM1, STM32_TIM15, STM32_TIM16, STM32_TIM17 */
+    STM32_GPT_MAX_HW_TIMERS /**< Helper for array sizing or validation, not a usable timer ID. */
+} Gpt_Hw_ChannelType; /* Corrected name to Gpt_Hw_ChannelType as used in Gpt_PBcfg.c earlier */
 
 
 /**
- * @brief Structure defining the post-build configuration for a single GPT channel. (GptChannelConfiguration)
- * @details This structure contains all parameters necessary to configure one GPT channel.
- *          An array of this type, representing all configured channels, will be defined
- *          in Gpt_PBcfg.c.
+ * @brief Structure defining the post-build configuration for a single GPT channel. (AUTOSAR SWS GptChannelConfiguration)
+ * @details This structure is instantiated in an array in `Gpt_PBcfg.c` for each configured channel,
+ *          providing all necessary settings for `Gpt_Init` to configure the timer channel.
  */
-typedef struct Gpt_ChannelConfigType /* Name matches the forward declaration in Gpt.h */
+typedef struct Gpt_ChannelConfigTypeTag /* Using Tag for MISRA C:2012 Rule 5.6 */
 {
-    /** @brief Logical GPT Channel ID. Corresponds to symbolic names in Gpt_Cfg.h (e.g., GPT_CHANNEL_0). */
-    const Gpt_ChannelType GptChannelId;
+    const Gpt_ChannelType             GptChannelId;           /**< @brief Logical GPT Channel ID (e.g., GPT_CHANNEL_0 from Gpt_Cfg.h). */
+    const Gpt_Hw_ChannelType          HwTimer;                /**< @brief The underlying STM32 hardware timer (e.g., STM32_TIM2). Renamed from HwTimerModule */
+    const Gpt_ModeType                GptChannelMode;         /**< @brief Channel operational mode: GPT_MODE_ONESHOT or GPT_MODE_CONTINUOUS. */
+    const uint32                      GptChannelTickFrequencyHz;/**< @brief Desired tick frequency in Hz for this channel (e.g., 1000000 for 1MHz -> 1us tick). */
+    const Gpt_ValueType               GptChannelTickValueMax; /**< @brief Maximum tick value the timer channel can count to (usually ARR value). */
+    const Gpt_NotificationFuncPtrType GptNotification;        /**< @brief Pointer to the notification function (callback). NULL_PTR if no notification. */
 
-    /** @brief Identifies the underlying STM32 hardware timer peripheral (e.g., GPT_HW_STM32_TIM2). */
-    const Gpt_HwChannelType HwTimer;
-
-    /** @brief Channel mode: GPT_MODE_ONESHOT or GPT_MODE_CONTINUOUS. */
-    const Gpt_ModeType GptChannelMode;
-
-    /**
-     * @brief Desired tick frequency in Hz for this channel (e.g., 1000000 for 1MHz -> 1us tick).
-     * @details Gpt_Init will use this, along with the timer's input clock frequency (from a Clock module
-     *          or fixed definition), to calculate the hardware prescaler value.
-     */
-    const uint32 GptChannelTickFrequencyHz;
-
-    /**
-     * @brief Maximum tick value for the channel (corresponds to Auto-Reload Register - ARR).
-     * @details This value determines the timer period in continuous mode or the maximum
-     *          one-shot duration at the configured GptChannelTickFrequencyHz.
-     *          Example: For a 1MHz tick frequency, a MaxTickValue of 1000 means a period of 1ms.
-     *          Must be within the hardware timer's counter capability (e.g., <= 0xFFFF for 16-bit timers).
-     */
-    const Gpt_ValueType GptChannelTickValueMax;
-
-    /**
-     * @brief Pointer to the notification function (callback) for this channel.
-     * @details This function is called when the timer period expires (in continuous mode)
-     *          or when the target time is reached (in one-shot mode), if notifications are enabled.
-     *          Set to NULL_PTR if no notification is needed for this channel.
-     */
-    const Gpt_NotificationFuncPtrType GptNotification;
-
-#if (GPT_WAKEUP_FUNCTIONALITY_API == STD_ON) /* From Gpt_Cfg.h */
-    /** @brief TRUE if this channel is configured to be wakeup capable. FALSE otherwise. */
-    const boolean GptEnableWakeup;
-    /* TODO: Add EcuM_WakeupSourceType GptWakeupSourceId; if GptEnableWakeup is TRUE. Requires EcuM types. */
+#if (defined(GPT_WAKEUP_FUNCTIONALITY_API) && (GPT_WAKEUP_FUNCTIONALITY_API == STD_ON)) /* Check Gpt_Cfg.h */
+    const boolean                     GptEnableWakeup;        /**< @brief TRUE if this channel is configured as wakeup capable. */
+    /* const EcuM_WakeupSourceType    GptWakeupSourceId; */     /**< @brief EcuM Wakeup Source ID if wakeup capable. (Requires EcuM_Types.h) */
 #endif
-
-    /* Other implementation-specific parameters could be added here, e.g.: */
-    /* - Specific hardware timer channel (if a timer has multiple compare channels used for GPT) */
-    /* - DMA configuration if used with timers */
-    /* - Pre-calculated prescaler value (if GptChannelTickFrequencyHz is not used for calculation) */
-
 } Gpt_ChannelConfigType;
 
 
-/*
- * The `Gpt_ConfigType` structure (main configuration structure for the driver)
- * is already declared in Gpt.h. It typically includes:
- *   P2CONST(struct Gpt_ChannelConfigType, AUTOMATIC, GPT_APPL_CONST) ChannelConfigSet;
- *   const Gpt_ChannelType NumberOfChannels;
- *
- * This Gpt_PBcfg.h file provides the full definition of `Gpt_ChannelConfigType`,
- * which is referenced by the `Gpt_ConfigType` in Gpt.h.
+/**
+ * @brief Main Post-Build Configuration Structure for the GPT Driver. (AUTOSAR SWS GptConfigType)
+ * @details This structure contains a pointer to an array of `Gpt_ChannelConfigType` elements,
+ *          defining the configuration for all GPT channels managed by this driver instance.
+ *          An instance of this structure (e.g., `GptConfig`) is defined in `Gpt_PBcfg.c`
+ *          and passed to `Gpt_Init()`.
  */
+typedef struct Gpt_ConfigTypeTag /* Using Tag for MISRA C:2012 Rule 5.6 */
+{
+    /** @brief Pointer to the array of individual GPT channel configurations. */
+    P2CONST(Gpt_ChannelConfigType, AUTOMATIC, CONFIG_CONST) ChannelConfigSet; /* Changed from ChannelConfig, CONFIG_CONST from Compiler.h */
+
+    /** @brief Total number of GPT channels configured in the `ChannelConfigSet` array.
+     *  @details This should match `GPT_CONFIGURED_CHANNELS` from `Gpt_Cfg.h`.
+     */
+    Gpt_ChannelType NumberOfChannels;
+} Gpt_ConfigType;
 
 
 /*==================================================================================================
@@ -115,26 +115,10 @@ typedef struct Gpt_ChannelConfigType /* Name matches the forward declaration in 
 
 /**
  * @brief Declaration of the post-build configuration set for the GPT Driver.
- * @details The actual definition (the instance of Gpt_ConfigType and its contained arrays)
- *          will be provided in Gpt_PBcfg.c. This is the structure that will be
- *          passed to Gpt_Init().
+ * @details The actual definition (the instance `GptConfig`) is in `Gpt_PBcfg.c`.
+ *          This uses the `CONFIG_CONST` memory class from `Compiler.h`.
  */
-#define GPT_START_SEC_CONFIG_DATA_UNSPECIFIED /* For memory mapping via MemMap.h */
-/* #include "MemMap.h" This should be Bsw_MemMap.h or Gpt_MemMap.h as per AUTOSAR */
-
-extern CONST(Gpt_ConfigType, GPT_CONFIG_CONST) Gpt_ConfigRoot[]; /* Standard is array for multiple config sets */
-/* For a single config set, often just: extern CONST(Gpt_ConfigType, GPT_CONFIG_CONST) GptConfig; */
-/* Let's assume a single configuration set for simplicity for now as GptConfig */
-/* The name GptConfig should match the one in Gpt_PBcfg.c */
-/* Using Gpt_ConfigRoot to align with potential for multiple configurations, but will define one named GptConfig */
-/* For now, let's use a simpler name that implies a single config set, e.g. GptDriverConfig */
-/* As per plan, `GptConfig` was used. */
-
-extern CONST(Gpt_ConfigType, CONFIG_CONST) GptConfig; /* Using CONFIG_CONST from Compiler.h for the section */
-
-
-#define GPT_STOP_SEC_CONFIG_DATA_UNSPECIFIED
-/* #include "MemMap.h" */
+extern CONST(Gpt_ConfigType, CONFIG_CONST) GptConfig;
 
 
 #endif /* GPT_PBCFG_H */

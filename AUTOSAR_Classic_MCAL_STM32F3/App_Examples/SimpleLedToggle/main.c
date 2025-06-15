@@ -1,34 +1,34 @@
-/**
- * @file main.c
- * @brief Simple LED Toggle Example for AUTOSAR Dio, Port, and Gpt drivers.
- *
- * This application demonstrates:
- * - Initialization of Port, Dio, and Gpt drivers.
- * - Reading a button state using Dio_ReadChannel.
- * - Controlling an LED using Dio_WriteChannel.
- * - Creating delays using Gpt_StartTimer and polling Gpt_GetTimeRemaining.
- * - Adjusting LED blink speed based on button input.
- */
+/*==================================================================================================
+*   Project              : AUTOSAR 4.x MCAL STM32F3 Sample Application
+*   Platform             : STM32
+*   Peripheral           : GPIO, GPT
+*   Dependencies         : Dio, Port, Gpt drivers
+*
+*   Autosar Version      : 4.3.1
+*   Sw Version           : 1.0.0
+*
+==================================================================================================*/
 
-/* MCAL Driver Includes */
-#include "Port.h"         /* Port Driver public header */
-#include "Dio.h"          /* Dio Driver public header */
-#include "Gpt.h"          /* Gpt Driver public header */
+/* MCAL Driver Headers */
+#include "Dio.h"         /* For Dio_Init, Dio_WriteChannel, Dio_ReadChannel */
+#include "Port.h"       /* For Port_Init */
+#include "Gpt.h"         /* For Gpt_Init, Gpt_StartTimer, Gpt_GetTimeRemaining */
 
-/* Configuration Includes */
-/* These headers declare the 'Xxx_Config' structures needed by Xxx_Init(). */
-#include "Port_PBcfg.h"    /* Port Driver Post-Build Configuration declarations */
-#include "Dio_PBcfg.h"     /* Dio Driver Post-Build Configuration declarations */
-#include "Gpt_PBcfg.h"     /* Gpt Driver Post-Build Configuration declarations */
+/* Configuration Headers for MCAL drivers */
+#include "Dio_Cfg.h"        /* For DIO_CHANNEL_PA5, DIO_CHANNEL_PC13 symbolic names */
+#include "Port_Cfg.h"       /* (Not directly used for symbols here, but good practice if general Port settings were needed) */
+#include "Gpt_Cfg.h"        /* For GPT_CHANNEL_1, GPT_ENABLE_DISABLE_NOTIFICATION_API */
 
-/* Pre-compile Configuration Includes (for symbolic names and API switches) */
-#include "Dio_Cfg.h"       /* For DIO_CHANNEL_xxx symbolic names */
-#include "Gpt_Cfg.h"       /* For GPT_CHANNEL_xxx and GPT_xxx_API macros */
+#include "Dio_PBcfg.h"      /* For extern DioConfig */
+#include "Port_PBcfg.h"     /* For extern PortConfig */
+#include "Gpt_PBcfg.h"      /* For extern GptConfig */
 
-/* Common Includes (already included via MCAL headers, but explicit for clarity if needed) */
-/* #include "Std_Types.h" */ /* For uint32, FUNC, VAR if not via others */
-/* #include "Compiler.h" */  /* For FUNC, VAR macros */
+/* Std_Types.h and Compiler.h are included via the MCAL driver headers */
 
+
+/*==================================================================================================
+*                                       DEFINES AND MACROS
+==================================================================================================*/
 
 /* Symbolic name for the LED channel (e.g., PA5) */
 #ifndef LED_CHANNEL
@@ -46,49 +46,55 @@
 #endif
 
 
+/*==================================================================================================
+*                                       GLOBAL FUNCTIONS (main)
+==================================================================================================*/
+
 /**
- * @brief Main function for the LED toggle application with GPT-based delay.
+ * @brief Main function for the Simple LED Toggle application.
+ * @details Initializes Port, Dio, and Gpt drivers.
+ *          Toggles an LED (PA5) based on a button input (PC13).
+ *          Uses GPT channel (GPT_CHANNEL_1, mapped to TIM6) for delays.
+ *
+ * @return int Standard main return type (typically not used in embedded).
+ *
+ * @note This application assumes specific configurations in Port_PBcfg.c and Dio_Cfg.h:
+ *       - PA5 (DIO_CHANNEL_PA5) is configured as a GPIO output for the LED.
+ *       - PC13 (DIO_CHANNEL_PC13) is configured as a GPIO input with pull-up for the button.
+ *       - GPT_CHANNEL_1 is configured in Gpt_PBcfg.c (e.g., TIM6, 1kHz tick, one-shot mode).
  */
 FUNC(int, APPL_CODE) main(void)
 {
-    VAR(Dio_LevelType, AUTOMATIC) buttonState;
-    VAR(Gpt_ValueType, AUTOMATIC) delay_ticks; /* Gpt_ValueType is typically uint32 */
+    VAR(Dio_LevelType, AUTOMATIC) u8ButtonState;
+    VAR(Gpt_ValueType, AUTOMATIC) u32DelayTicks; /* Using Gpt_ValueType (uint32) */
 
-    /* Initialize MCAL drivers */
-    Port_Init(&Port_Config);    /* Configure pins (direction, mode, etc.) */
-    Dio_Init(&Dio_Config);      /* Initialize Dio driver (if any internal state needed) */
-    Gpt_Init(&Gpt_Config);      /* Initialize Gpt driver (configures timers) */
+    /* Initialize MCAL Drivers */
+    Port_Init(&PortConfig); /* PortConfig is extern const from Port_PBcfg.h */
+    Dio_Init(&DioConfig);   /* DioConfig is extern const from Dio_PBcfg.h */
+    Gpt_Init(&GptConfig);   /* GptConfig is extern const from Gpt_PBcfg.h */
 
-    /* Application's main loop */
+    /* Infinite loop for application logic */
     while(1)
     {
-        /* Read the state of the button */
-        /* Assuming PC13 (BUTTON_CHANNEL) is configured with a pull-up:
-           - Not pressed: STD_HIGH
-           - Pressed (to GND): STD_LOW
-        */
-        buttonState = Dio_ReadChannel(BUTTON_CHANNEL);
+        u8ButtonState = Dio_ReadChannel(BUTTON_CHANNEL);
 
-        /* Adjust delay based on button state */
-        if (buttonState == STD_LOW) /* Button is pressed */
+        if (u8ButtonState == STD_LOW) /* Assuming button press pulls PC13 (with pull-up) LOW */
         {
-            delay_ticks = 100UL;  /* Faster blink: 0.1s delay (100 ticks * 1ms/tick for 1kHz GPT channel) */
+            u32DelayTicks = 100UL;  /* 0.1s delay for TIM6 (configured at 1kHz tick in Gpt_PBcfg.c) */
         }
-        else /* Button is not pressed */
+        else /* Button not pressed (PC13 is HIGH due to pull-up) */
         {
-            delay_ticks = 500UL;  /* Slower blink: 0.5s delay (500 ticks * 1ms/tick) */
+            u32DelayTicks = 500UL;  /* 0.5s delay for TIM6 (configured at 1kHz tick) */
         }
 
         /* Turn LED ON */
         Dio_WriteChannel(LED_CHANNEL, STD_HIGH);
 
-        /* Delay using GPT Channel (configured as one-shot) */
-        Gpt_StartTimer(DELAY_GPT_CHANNEL, delay_ticks);
+        /* Delay using GPT Channel 1 (configured as one-shot) */
+        Gpt_StartTimer(DELAY_GPT_CHANNEL, u32DelayTicks);
         while(Gpt_GetTimeRemaining(DELAY_GPT_CHANNEL) > 0U)
         {
             /* Poll until timer channel finishes. */
-            /* In a more advanced system, could use WFI (Wait For Interrupt) here if
-               GPT notifications were configured to wake the CPU from a low-power mode. */
         }
         /* Gpt_StopTimer(DELAY_GPT_CHANNEL); // Not strictly necessary for one-shot mode as it stops automatically. */
 
@@ -96,42 +102,48 @@ FUNC(int, APPL_CODE) main(void)
         /* Turn LED OFF */
         Dio_WriteChannel(LED_CHANNEL, STD_LOW);
 
-        /* Delay again using the same GPT Channel */
-        Gpt_StartTimer(DELAY_GPT_CHANNEL, delay_ticks);
+        /* Delay again using GPT Channel 1 */
+        Gpt_StartTimer(DELAY_GPT_CHANNEL, u32DelayTicks);
         while(Gpt_GetTimeRemaining(DELAY_GPT_CHANNEL) > 0U)
         {
-            /* Poll */
+            /* Poll. */
         }
         /* Gpt_StopTimer(DELAY_GPT_CHANNEL); */
     }
 
-    /* return 0; // Should not be reached in an embedded system. */
+    /* return 0; // Unreachable in embedded applications with while(1) loop. */
 }
 
 
-#if (GPT_ENABLE_DISABLE_NOTIFICATION_API == STD_ON) /* From Gpt_Cfg.h */
+/*==================================================================================================
+*                                  GPT NOTIFICATION CALLBACKS (STUBS)
+==================================================================================================*/
+
+#if (defined(GPT_ENABLE_DISABLE_NOTIFICATION_API) && (GPT_ENABLE_DISABLE_NOTIFICATION_API == STD_ON))
 /**
- * @brief Example/Stub notification function for GPT Channel 0.
- * @details This function is declared as extern in Gpt_PBcfg.c if configured.
- *          The application must provide its definition.
- *          This function would be called from the GPT ISR if notifications are enabled
- *          for this channel and the timer event occurs.
+ * @brief Example notification callback for GPT Channel 0.
+ * @details This function is called from the GPT ISR when Channel 0 expires,
+ *          if notifications are enabled for this channel.
+ *          Defined here as a stub to allow linking if Gpt_PBcfg.c references it.
+ *          The user application would provide the actual implementation.
  */
 FUNC(void, APPL_CODE) Gpt_Notification_Channel0(void)
 {
-    /* Example action: Toggle a different LED, set a flag, etc. */
-    /* For this main.c, it's just a stub to allow linking if Gpt_PBcfg.c refers to it. */
-    (void)0; /* No operation */
+    /* Example: Increment a counter, set a flag, or toggle an I/O. */
+    (void)0; /* No operation for this stub - explicit void cast to suppress warnings. */
 }
 
 /**
- * @brief Example/Stub notification function for GPT Channel 1.
+ * @brief Example notification callback for GPT Channel 1.
+ * @details This function is called from the GPT ISR when Channel 1 expires,
+ *          if notifications are enabled for this channel.
+ *          Defined here as a stub to allow linking if Gpt_PBcfg.c references it.
  */
 FUNC(void, APPL_CODE) Gpt_Notification_Channel1(void)
 {
-    /* Example action for GPT Channel 1 notification. */
-    (void)0; /* No operation */
+    (void)0; /* No operation for this stub. */
 }
 
-/* Add definitions for other notification functions if configured in Gpt_PBcfg.c */
-#endif /* GPT_ENABLE_DISABLE_NOTIFICATION_API */
+/* Add other notification function stubs if configured in Gpt_PBcfg.c and used */
+
+#endif /* GPT_ENABLE_DISABLE_NOTIFICATION_API == STD_ON */
