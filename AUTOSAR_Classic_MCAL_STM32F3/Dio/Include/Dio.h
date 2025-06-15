@@ -70,32 +70,18 @@
 *                                             TYPES
 ==================================================================================================*/
 
-/** @brief Numeric ID of a DIO channel. Range depends on MCU. Typically uint8. (AUTOSAR SWS Ref: Dio_ChannelType) */
-typedef uint8 Dio_ChannelType;
-
-/** @brief Numeric ID of a DIO port. Range depends on MCU. Typically uint8. (AUTOSAR SWS Ref: Dio_PortType) */
-typedef uint8 Dio_PortType;
-
-/**
- * @brief Represents the physical state of a DIO channel. (AUTOSAR SWS Ref: Dio_LevelType)
- * @details STD_LOW (0) or STD_HIGH (1). Based on uint8.
- */
-typedef uint8 Dio_LevelType;
-
-/** @brief Represents the levels of all channels in a DIO port. (AUTOSAR SWS Ref: Dio_PortLevelType)
- *  @details For STM32F3, ports are 16-bit wide. uint16 is appropriate.
- */
-typedef uint16 Dio_PortLevelType;
-
-
 /*
- * Dio_ChannelGroupType and Dio_ConfigType are now defined in Dio_PBcfg.h
- * (included above) when using post-build configuration variant.
- * This avoids redefinition and ensures consistency.
+ * Fundamental DIO types such as:
+ * - Dio_ChannelType (uint8)
+ * - Dio_PortType (uint8)
+ * - Dio_LevelType (uint8, for STD_HIGH/STD_LOW)
+ * - Dio_PortLevelType (uint16)
+ * are now defined in "Dio_PBcfg.h" (which is included by this file via its own include of Dio_PBcfg.h).
+ * This makes Dio_PBcfg.h the master source for these types and also for the
+ * post-build configuration structures like Dio_ChannelGroupType and Dio_ConfigType,
+ * resolving potential circular dependencies and ensuring type consistency.
  *
- * If supporting pre-compile variant where Dio_PBcfg.h is not used, these types
- * would need to be defined here, likely guarded by a pre-compile switch.
- * For this project, we are focusing on post-build.
+ * Dio.h itself includes Dio_PBcfg.h, making these types available.
  */
 
 
